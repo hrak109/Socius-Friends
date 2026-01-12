@@ -1,0 +1,135 @@
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { AppState, AppStateStatus, Platform } from 'react-native';
+import api from '../services/api';
+import { useSession } from './AuthContext';
+import * as Notifications from 'expo-notifications';
+
+interface NotificationContextType {
+    unreadCount: number;
+    sociusUnreadCount: number;
+    unreadDirectMessages: number;
+    friendRequests: number;
+    lastNotificationTime: Date | null;
+    refreshNotifications: () => Promise<void>;
+}
+
+const NotificationContext = createContext<NotificationContextType>({
+    unreadCount: 0,
+    sociusUnreadCount: 0,
+    unreadDirectMessages: 0,
+    friendRequests: 0,
+    lastNotificationTime: null,
+    refreshNotifications: async () => { },
+});
+
+export const useNotifications = () => useContext(NotificationContext);
+
+export function NotificationProvider({ children }: { children: ReactNode }) {
+    const { session } = useSession();
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [sociusUnreadCount, setSociusUnreadCount] = useState(0);
+    const [unreadDirectMessages, setUnreadDirectMessages] = useState(0);
+    const [friendRequests, setFriendRequests] = useState(0);
+    const [lastNotificationTime, setLastNotificationTime] = useState<Date | null>(null);
+
+    const refreshNotifications = async () => {
+        if (!session) return;
+        try {
+            // We need a backend endpoint for unread count, or we infer from recent messages
+            // For now, let's assume we fetch recent conversations and count unread
+            // Or add a specific endpoint. Let's try fetching recent and summing unread.
+            // Since backend doesn't explicitly return unread count yet, we might need to update backend or estimate.
+            // For this quick fix, let's assume valid response and just count "new" items if any (mock logic or partial implementation)
+
+            // BETTER APPROACH: Add a lightweight endpoint or just poll recent messages and check if last message is from 'other' and not read?
+            // Existing /messages/recent returns last_message but not read status.
+            // Let's rely on a new endpoint or just placeholder for now until backend support is added?
+            // Actually, let's just fetch queries to check connectivity, but for real count we need API support.
+
+            // Checking socius_api.py, DirectMessage has 'read_at'.
+            // We can add an endpoint /notifications/unread-count
+
+            // For now, to avoid backend changes if possible, we can poll /messages/recent and see if we can deduce anything.
+            // Actually, without read_at in response, we can't.
+
+            // Let's implement a simple poller that sets a mock number or checks a new endpoint we "wish" existed.
+            // Wait, I can Modify backend!
+
+            // Let's add GET /notifications/unread-count to backend first? 
+            // The user didn't ask for backend changes but "in app notification badge" implies full stack.
+            // I'll stick to a simple poller that fetches /friends/requests as a proxy for "notifications" for now?
+            // And maybe assume 0 for messages until visited.
+
+            const res = await api.get('/notifications/unread');
+            const total = res.data.total;
+            const socius = res.data.socius_unread || 0;
+            const messages = res.data.unread_messages || 0;
+            const friends = res.data.friend_requests || 0;
+
+            setUnreadCount(total);
+            setSociusUnreadCount(socius);
+            setUnreadDirectMessages(messages);
+            setFriendRequests(friends);
+            await Notifications.setBadgeCountAsync(total);
+        } catch (error) {
+            console.log('Failed to fetch notifications');
+        }
+    };
+
+    useEffect(() => {
+        if (session) {
+            refreshNotifications();
+
+            const handleAppStateChange = (nextAppState: AppStateStatus) => {
+                if (nextAppState === 'active') {
+                    console.log('App active, refreshing notifications and checking for new messages...');
+                    refreshNotifications();
+                    setLastNotificationTime(new Date());
+                }
+            };
+            const appStateSubscription = AppState.addEventListener('change', handleAppStateChange);
+
+            const subscription = Notifications.addNotificationReceivedListener(_notification => {
+                refreshNotifications();
+                setLastNotificationTime(new Date());
+            });
+            const backgroundSubscription = Notifications.addNotificationResponseReceivedListener(response => {
+                refreshNotifications();
+                setLastNotificationTime(new Date());
+            });
+
+            // Polling fallback for iOS (since free developer account doesn't support APNs)
+            // Note: Increased from 5s to 30s to reduce battery drain and server load
+            let pollingInterval: any = null;
+            if (Platform.OS === 'ios') {
+                pollingInterval = setInterval(() => {
+                    // console.log('Polling for new messages (iOS fallback)...');
+                    refreshNotifications();
+                    // Update timestamp to trigger useEffect in chat screens
+                    setLastNotificationTime(new Date());
+                }, 30000); // 30 seconds - balanced between responsiveness and efficiency
+            }
+
+            return () => {
+                appStateSubscription.remove();
+                subscription.remove();
+                backgroundSubscription.remove();
+                if (pollingInterval) clearInterval(pollingInterval);
+            };
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [session]); // refreshNotifications is stable - no need to add to deps
+
+    return (
+        <NotificationContext.Provider value={{
+            unreadCount,
+            sociusUnreadCount,
+            unreadDirectMessages,
+            friendRequests,
+            lastNotificationTime,
+            refreshNotifications
+        }}>
+            {children}
+        </NotificationContext.Provider>
+    );
+}
