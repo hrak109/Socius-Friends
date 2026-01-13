@@ -10,6 +10,10 @@ interface AuthContextType {
     signOut: () => Promise<void>;
 }
 
+GoogleSignin.configure({
+    webClientId: '801464542210-b08v4fc2tsk7ma3bfu30jc1frueps1on.apps.googleusercontent.com',
+});
+
 const AuthContext = createContext<AuthContextType>({
     session: null,
     isLoading: true,

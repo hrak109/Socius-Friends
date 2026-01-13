@@ -10,9 +10,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import api from '../services/api';
 
-GoogleSignin.configure({
-    webClientId: '801464542210-b08v4fc2tsk7ma3bfu30jc1frueps1on.apps.googleusercontent.com',
-});
+
 
 export default function LoginScreen() {
     const router = useRouter();
