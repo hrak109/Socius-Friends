@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Image, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Avatar, Bubble, GiftedChat, IMessage, User } from 'react-native-gifted-chat';
 import { PROFILE_AVATAR_MAP, SOCIUS_AVATAR_MAP } from '../constants/avatars';
@@ -340,61 +340,67 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
     };
 
     return (
-        <SafeAreaView
-            style={[styles.container, { backgroundColor: colors.background }]}
-            edges={['left', 'right', 'bottom']}
+        <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
         >
-            {showHeader && (
-                <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-                    {onClose ? (
-                        <TouchableOpacity onPress={onClose} style={styles.backButton}>
-                            {isModal ? (
-                                <Ionicons name="close" size={24} color={colors.text} />
-                            ) : (
-                                <Ionicons name="arrow-back" size={24} color={colors.text} />
-                            )}
-                        </TouchableOpacity>
-                    ) : (
+            <SafeAreaView
+                style={[styles.container, { backgroundColor: colors.background }]}
+                edges={['left', 'right', 'bottom']}
+            >
+                {showHeader && (
+                    <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+                        {onClose ? (
+                            <TouchableOpacity onPress={onClose} style={styles.backButton}>
+                                {isModal ? (
+                                    <Ionicons name="close" size={24} color={colors.text} />
+                                ) : (
+                                    <Ionicons name="arrow-back" size={24} color={colors.text} />
+                                )}
+                            </TouchableOpacity>
+                        ) : (
+                            <View style={{ width: 40 }} />
+                        )}
+                        <Text style={[styles.headerTitle, { color: colors.text }]}>
+                            {context && context !== 'global'
+                                ? `${t('chat.title')} (${context.charAt(0).toUpperCase() + context.slice(1)})`
+                                : t('chat.title')}
+                        </Text>
                         <View style={{ width: 40 }} />
-                    )}
-                    <Text style={[styles.headerTitle, { color: colors.text }]}>
-                        {context && context !== 'global'
-                            ? `${t('chat.title')} (${context.charAt(0).toUpperCase() + context.slice(1)})`
-                            : t('chat.title')}
-                    </Text>
-                    <View style={{ width: 40 }} />
-                </View>
-            )}
+                    </View>
+                )}
 
-            <GiftedChat
-                messages={messages}
-                text={text}
-                textInputRef={textInputRef}
-                onInputTextChanged={setText}
-                onSend={(messages) => onSend(messages)}
-                user={{
-                    _id: 1,
-                    name: displayName || user?.name || 'Me',
-                    avatar: displayAvatar ? PROFILE_AVATAR_MAP[displayAvatar] : (user?.photo || undefined),
-                }}
-                isTyping={isTyping}
-                locale={language}
-                renderBubble={renderBubble}
-                renderAvatar={renderAvatar}
-                renderInputToolbar={renderInputToolbar}
-                placeholder={t('chat.placeholder')}
-                showUserAvatar={true}
-                alwaysShowSend
-                isScrollToBottomEnabled
-                renderUsernameOnMessage={true}
-                timeTextStyle={{
-                    left: { color: colors.textSecondary },
-                    right: { color: 'rgba(255, 255, 255, 0.7)' }
-                }}
-                keyboardShouldPersistTaps="handled"
-                bottomOffset={Platform.OS === 'ios' ? 34 : 0}
-            />
-        </SafeAreaView>
+                <GiftedChat
+                    messages={messages}
+                    text={text}
+                    textInputRef={textInputRef}
+                    onInputTextChanged={setText}
+                    onSend={(messages) => onSend(messages)}
+                    user={{
+                        _id: 1,
+                        name: displayName || user?.name || 'Me',
+                        avatar: displayAvatar ? PROFILE_AVATAR_MAP[displayAvatar] : (user?.photo || undefined),
+                    }}
+                    isTyping={isTyping}
+                    locale={language}
+                    renderBubble={renderBubble}
+                    renderAvatar={renderAvatar}
+                    renderInputToolbar={renderInputToolbar}
+                    placeholder={t('chat.placeholder')}
+                    showUserAvatar={true}
+                    alwaysShowSend
+                    isScrollToBottomEnabled
+                    renderUsernameOnMessage={true}
+                    timeTextStyle={{
+                        left: { color: colors.textSecondary },
+                        right: { color: 'rgba(255, 255, 255, 0.7)' }
+                    }}
+                    keyboardShouldPersistTaps="handled"
+                    bottomOffset={Platform.OS === 'ios' ? 34 : 0}
+                />
+            </SafeAreaView>
+        </KeyboardAvoidingView>
     );
 }
 

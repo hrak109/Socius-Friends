@@ -159,7 +159,7 @@ export default function FriendsScreen() {
                 <Text style={[styles.friendName, { color: colors.text }]}>{item.friend_username}</Text>
             </View>
             <View style={styles.actionButtons}>
-                <TouchableOpacity style={[styles.actionBtn, styles.chatBtn]} onPress={() => router.push({ pathname: '/messages/[id]', params: { id: item.friend_id, username: item.friend_username } } as any)}>
+                <TouchableOpacity style={[styles.actionBtn, styles.chatBtn]} onPress={() => router.push({ pathname: '/chat/[id]', params: { id: `user-${item.friend_id}`, type: 'user', name: item.friend_username, avatar: item.friend_avatar || '' } } as any)}>
                     <Ionicons name="chatbubble-outline" size={20} color="#1a73e8" />
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.actionBtn, styles.deleteBtn]} onPress={() => unfriend(item.friend_id)}>
