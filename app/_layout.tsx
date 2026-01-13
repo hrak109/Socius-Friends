@@ -77,12 +77,25 @@ function RootLayoutNav() {
     useEffect(() => {
         if (isAuthLoading) return;
 
+        // Cast to string to avoid TS errors with typed routes union
+        const firstSegment = segments[0] as string | undefined;
+
+        // Check if on a public route (root index is empty array, or onboarding)
+        // segments is [] when on '/'
+        const isPublicRoute = (segments as string[]).length === 0 || firstSegment === 'index' || firstSegment === 'onboarding';
+
         if (!session) {
-            router.replace('/');
-        } else if (session && segments[0] !== 'messages' && segments[0] !== 'chat' && segments[0] !== 'friends' && segments[0] !== 'socius-friends' && segments[0] !== 'settings' && segments[0] !== 'socius-setup' && segments[0] !== 'my_profile') {
-            router.replace('/messages');
+            // If not logged in and not on a public route, redirect to login
+            if (!isPublicRoute) {
+                router.replace('/');
+            }
+        } else if (session) {
+            // If logged in and on a public route (login/onboarding), redirect to messages
+            if (isPublicRoute) {
+                router.replace('/messages');
+            }
         }
-    }, [session, segments, isAuthLoading, router]);
+    }, [session, segments, isAuthLoading]);
 
 
 

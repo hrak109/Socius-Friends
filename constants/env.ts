@@ -12,7 +12,7 @@ interface EnvironmentConfig {
 
 const environments: Record<string, EnvironmentConfig> = {
     development: {
-        API_URL: 'http://localhost:8002/api/socius',
+        API_URL: 'https://api.oakhillpines.com/api/socius',
         ENV_NAME: 'Development',
         DEBUG: true,
     },

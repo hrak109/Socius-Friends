@@ -22,25 +22,38 @@ export default function LoginScreen() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const checkOnboarding = async () => {
+        let isMounted = true;
+
+        const checkAuthAndOnboarding = async () => {
             try {
+                // 1. Check if user has selected language (First open)
                 const selectedLanguage = await AsyncStorage.getItem('selected_language');
+
+                if (!isMounted) return;
+
                 if (!selectedLanguage) {
-                    // User hasn't selected language yet, go to onboarding
                     router.replace('/onboarding');
                     return;
                 }
 
-                // If already logged in, go to messages
+                // 2. If valid session, go to messages
                 if (session) {
                     router.replace('/messages');
+                    return;
                 }
-            } finally {
+
+                // 3. Otherwise stay on login screen
+                setIsCheckingOnboarding(false);
+            } catch (e) {
+                console.error("Error checking onboarding:", e);
                 setIsCheckingOnboarding(false);
             }
         };
-        checkOnboarding();
-    }, [session, router]);
+
+        checkAuthAndOnboarding();
+
+        return () => { isMounted = false; };
+    }, [session]); // Remove router from deps to avoid loop
 
     const handleGoogleSignIn = async () => {
         setIsLoading(true);
@@ -93,10 +106,22 @@ export default function LoginScreen() {
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <View style={styles.content}>
-                <Ionicons name="people" size={80} color={colors.primary} />
-                <Text style={[styles.title, { color: colors.text }]}>Socius Friends</Text>
+                <TouchableOpacity
+                    style={styles.languageButton}
+                    onPress={() => router.push('/onboarding')}
+                >
+                    <Ionicons name="globe-outline" size={24} color={colors.textSecondary} />
+                </TouchableOpacity>
+
+                <Image
+                    source={require('../assets/images/icon.png')}
+                    style={{ width: 100, height: 100, borderRadius: 20, marginBottom: 20 }}
+                />
+                <Text style={[styles.title, { color: colors.text }]}>
+                    {language === 'ko' ? '소키어스 프렌즈' : 'Socius Friends'}
+                </Text>
                 <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                    {t('login.subtitle') !== 'login.subtitle' ? t('login.subtitle') : 'Chat with friends and AI companions'}
+                    {language === 'ko' ? '친구들이 기다리고 있어요!' : 'Your friends are waiting!'}
                 </Text>
 
                 {error && (
@@ -171,6 +196,13 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         color: '#333',
+    },
+    languageButton: {
+        position: 'absolute',
+        top: 20,
+        right: 20,
+        padding: 10,
+        zIndex: 10,
     },
 });
 
