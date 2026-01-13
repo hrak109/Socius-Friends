@@ -6,7 +6,8 @@ import { Alert, Platform, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
-import { ThemeProvider, useTheme } from '../context/ThemeContext';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { ThemeProvider, useTheme, darkColors } from '../context/ThemeContext';
 import { AuthProvider, useSession } from '../context/AuthContext';
 import { LanguageProvider, useLanguage } from '../context/LanguageContext';
 import { NotificationProvider, useNotifications } from '../context/NotificationContext';
@@ -87,11 +88,15 @@ function RootLayoutNav() {
 
     return (
         <>
-            <StatusBar style="auto" />
+            <StatusBar style={colors === darkColors ? 'light' : 'dark'} />
             <Stack
                 screenOptions={{
                     headerStyle: { backgroundColor: colors.background },
                     headerTintColor: colors.text,
+                    headerTitleStyle: { color: colors.text },
+                    // Enable iOS swipe back gesture
+                    gestureEnabled: true,
+                    fullScreenGestureEnabled: true,
                 }}
             >
                 <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -100,6 +105,7 @@ function RootLayoutNav() {
                     options={{
                         title: t('messages.title'),
                         headerBackVisible: false,
+                        gestureEnabled: false, // Disable on main screen
                         headerRight: () => <MessagesHeaderRight />,
                     }}
                 />
@@ -111,9 +117,10 @@ function RootLayoutNav() {
                     }}
                 />
                 <Stack.Screen name="friends" options={{ title: t('friends.title') }} />
-                <Stack.Screen name="socius-friends" options={{ title: t('friends.socius_friend'), presentation: 'modal' }} />
-                <Stack.Screen name="settings" options={{ title: t('settings.title'), presentation: 'modal' }} />
+                <Stack.Screen name="socius-friends" options={{ title: t('friends.socius_friend') }} />
+                <Stack.Screen name="settings" options={{ title: t('settings.title') }} />
                 <Stack.Screen name="socius-setup/index" options={{ headerShown: false }} />
+                <Stack.Screen name="onboarding/index" options={{ headerShown: false }} />
             </Stack>
         </>
     );
@@ -121,18 +128,20 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
     return (
-        <ErrorBoundary>
-            <ThemeProvider>
-                <AuthProvider>
-                    <LanguageProvider>
-                        <NotificationProvider>
-                            <UserProfileProvider>
-                                <RootLayoutNav />
-                            </UserProfileProvider>
-                        </NotificationProvider>
-                    </LanguageProvider>
-                </AuthProvider>
-            </ThemeProvider>
-        </ErrorBoundary>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+            <ErrorBoundary>
+                <ThemeProvider>
+                    <AuthProvider>
+                        <LanguageProvider>
+                            <NotificationProvider>
+                                <UserProfileProvider>
+                                    <RootLayoutNav />
+                                </UserProfileProvider>
+                            </NotificationProvider>
+                        </LanguageProvider>
+                    </AuthProvider>
+                </ThemeProvider>
+            </ErrorBoundary>
+        </GestureHandlerRootView>
     );
 }

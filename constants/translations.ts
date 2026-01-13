@@ -13,6 +13,16 @@ export const translations = {
             yesterday: 'Yesterday',
             am: 'AM',
             pm: 'PM',
+            cancelled: 'Cancelled',
+        },
+        login: {
+            subtitle: 'Chat with friends and AI companions',
+            google_signin: 'Sign in with Google',
+        },
+        onboarding: {
+            welcome: 'Welcome to Socius Friends',
+            choose_language: 'Choose your language',
+            change_later: 'You can change this later in Settings',
         },
         home: {
             greeting: 'Hello',
@@ -93,6 +103,9 @@ export const translations = {
             my_socius: 'Socius Friend',
             create_new: 'Create New Socius',
             no_socius: "You haven't created any Socius friends yet.",
+            sort_recent: 'Recent',
+            sort_alphabetical: 'A-Z',
+            sort_custom: 'Custom',
         },
         profile: {
             title: 'Profile',
@@ -218,6 +231,16 @@ export const translations = {
             yesterday: '어제',
             am: '오전',
             pm: '오후',
+            cancelled: '취소됨',
+        },
+        login: {
+            subtitle: '친구 및 AI 동반자와 채팅하세요',
+            google_signin: 'Google로 로그인',
+        },
+        onboarding: {
+            welcome: 'Socius Friends에 오신 것을 환영합니다',
+            choose_language: '언어를 선택하세요',
+            change_later: '나중에 설정에서 변경할 수 있습니다',
         },
         home: {
             greeting: '안녕하세요',
@@ -298,6 +321,9 @@ export const translations = {
             my_socius: '소키어스 친구',
             create_new: '새 소키어스 만들기',
             no_socius: '아직 소키어스 친구를 만들지 않았습니다.',
+            sort_recent: '최근순',
+            sort_alphabetical: '가나다순',
+            sort_custom: '사용자 정렬',
         },
         profile: {
             title: '프로필',

@@ -4,8 +4,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSession } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import api from '../services/api';
 
 GoogleSignin.configure({
@@ -16,13 +18,30 @@ export default function LoginScreen() {
     const router = useRouter();
     const { signIn, session } = useSession();
     const { colors } = useTheme();
+    const { t, language } = useLanguage();
     const [isLoading, setIsLoading] = useState(false);
+    const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (session) {
-            router.replace('/messages');
-        }
+        const checkOnboarding = async () => {
+            try {
+                const selectedLanguage = await AsyncStorage.getItem('selected_language');
+                if (!selectedLanguage) {
+                    // User hasn't selected language yet, go to onboarding
+                    router.replace('/onboarding');
+                    return;
+                }
+
+                // If already logged in, go to messages
+                if (session) {
+                    router.replace('/messages');
+                }
+            } finally {
+                setIsCheckingOnboarding(false);
+            }
+        };
+        checkOnboarding();
     }, [session, router]);
 
     const handleGoogleSignIn = async () => {
@@ -41,17 +60,37 @@ export default function LoginScreen() {
             const { access_token } = response.data;
 
             await signIn(access_token);
+
+            // Save language preference to backend after login
+            try {
+                await api.put('/users/me', { language });
+            } catch (langError) {
+                console.log('Failed to save language to backend:', langError);
+            }
+
+            // Mark onboarding as complete
+            await AsyncStorage.setItem('onboarding_complete', 'true');
+
             router.replace('/messages');
         } catch (err: any) {
             if (err.code === statusCodes.SIGN_IN_CANCELLED) {
-                setError('Sign in cancelled');
+                setError(t('common.cancelled'));
             } else {
-                setError(err.message || 'Failed to sign in');
+                setError(err.message || t('common.error'));
             }
         } finally {
             setIsLoading(false);
         }
     };
+
+    // Show loading while checking onboarding
+    if (isCheckingOnboarding) {
+        return (
+            <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+                <ActivityIndicator size="large" color={colors.primary} />
+            </SafeAreaView>
+        );
+    }
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -59,7 +98,7 @@ export default function LoginScreen() {
                 <Ionicons name="people" size={80} color={colors.primary} />
                 <Text style={[styles.title, { color: colors.text }]}>Socius Friends</Text>
                 <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                    Chat with friends and AI companions
+                    {t('login.subtitle') !== 'login.subtitle' ? t('login.subtitle') : 'Chat with friends and AI companions'}
                 </Text>
 
                 {error && (
@@ -79,7 +118,9 @@ export default function LoginScreen() {
                                 source={{ uri: 'https://www.google.com/favicon.ico' }}
                                 style={styles.googleIcon}
                             />
-                            <Text style={styles.googleButtonText}>Sign in with Google</Text>
+                            <Text style={styles.googleButtonText}>
+                                {t('login.google_signin') !== 'login.google_signin' ? t('login.google_signin') : 'Sign in with Google'}
+                            </Text>
                         </>
                     )}
                 </TouchableOpacity>
@@ -89,7 +130,11 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
+    container: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
     content: {
         flex: 1,
         justifyContent: 'center',
@@ -130,3 +175,4 @@ const styles = StyleSheet.create({
         color: '#333',
     },
 });
+

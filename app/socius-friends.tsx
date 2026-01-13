@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
     StyleSheet,
     View,
@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, Stack, useFocusEffect } from 'expo-router';
+import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import api from '../services/api';
@@ -22,7 +23,11 @@ interface SociusFriend {
     name: string;
     avatar: string;
     role: string;
+    created_at?: string;
+    sort_order?: number | null;
 }
+
+type SortMode = 'recent' | 'alphabetical' | 'custom';
 
 export default function SociusManagerScreen() {
     const router = useRouter();
@@ -32,6 +37,7 @@ export default function SociusManagerScreen() {
     const [friends, setFriends] = useState<SociusFriend[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [sortMode, setSortMode] = useState<SortMode>('recent');
 
     const loadFriends = useCallback(async () => {
         try {
@@ -52,6 +58,29 @@ export default function SociusManagerScreen() {
         }, [loadFriends])
     );
 
+    // Sort friends based on current mode
+    const sortedFriends = useMemo(() => {
+        const list = [...friends];
+        switch (sortMode) {
+            case 'recent':
+                return list.sort((a, b) => {
+                    const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+                    const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+                    return dateB - dateA; // Newest first
+                });
+            case 'alphabetical':
+                return list.sort((a, b) => a.name.localeCompare(b.name));
+            case 'custom':
+                return list.sort((a, b) => {
+                    const orderA = a.sort_order ?? 9999;
+                    const orderB = b.sort_order ?? 9999;
+                    return orderA - orderB;
+                });
+            default:
+                return list;
+        }
+    }, [friends, sortMode]);
+
     const onRefresh = () => {
         setRefreshing(true);
         loadFriends();
@@ -65,12 +94,7 @@ export default function SociusManagerScreen() {
         router.push({
             pathname: '/chat/[id]',
             params: {
-                id: `socius-${friend.id}`, // Ensure distinctive ID prefix if needed, usually just friend.id if internal logic handles it. 
-                // MessagesScreen uses `socius-${comp.id}`. Protocol: socius IDs are integers in DB? 
-                // Chat screen expects 'socius-ID' or just ID?
-                // MessagesScreen: id: `socius-${comp.id}`, type: 'socius'.
-                // Chat [id].tsx: parses ID.
-                // Let's stick to consistent `socius-${id}` ID for routing to Chat to avoid collision with user IDs.
+                id: `socius-${friend.id}`,
                 type: 'socius',
                 name: friend.name,
                 avatar: friend.avatar,
@@ -79,18 +103,90 @@ export default function SociusManagerScreen() {
         });
     };
 
-    // Function to confirm and delete a Socius friend could be added here
-    // For now, minimal scope as requested: List + Add Button.
+    const handleDelete = (friendId: string) => {
+        Alert.alert(
+            t('friends.unfriend_title'),
+            t('friends.unfriend_message'),
+            [
+                { text: t('common.cancel'), style: 'cancel' },
+                {
+                    text: t('friends.remove'),
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await api.delete(`/friends/socius/${friendId}`);
+                            setFriends(prev => prev.filter(f => f.id !== friendId));
+                        } catch (error: any) {
+                            Alert.alert(t('common.error'), error.response?.data?.detail || 'Failed to delete friend');
+                        }
+                    }
+                }
+            ]
+        );
+    };
 
-    const renderItem = ({ item }: { item: SociusFriend }) => {
+    const moveItem = async (fromIndex: number, direction: 'up' | 'down') => {
+        const toIndex = direction === 'up' ? fromIndex - 1 : fromIndex + 1;
+        if (toIndex < 0 || toIndex >= sortedFriends.length) return;
+
+        const newList = [...sortedFriends];
+        const [moved] = newList.splice(fromIndex, 1);
+        newList.splice(toIndex, 0, moved);
+
+        // Update local state first (optimistic)
+        const updatedWithOrder = newList.map((f, idx) => ({ ...f, sort_order: idx }));
+        setFriends(updatedWithOrder);
+
+        // Persist to backend
+        try {
+            await api.patch('/friends/socius/order', {
+                orders: updatedWithOrder.map(f => ({ id: parseInt(f.id), sort_order: f.sort_order }))
+            });
+        } catch (error) {
+            console.error('Failed to save order:', error);
+            loadFriends(); // Revert on error
+        }
+    };
+
+    const handleDragEnd = async (data: SociusFriend[]) => {
+        // Update local state with new order
+        const updatedWithOrder = data.map((f, idx) => ({ ...f, sort_order: idx }));
+        setFriends(updatedWithOrder);
+
+        // Persist to backend
+        try {
+            await api.patch('/friends/socius/order', {
+                orders: updatedWithOrder.map(f => ({ id: parseInt(f.id), sort_order: f.sort_order }))
+            });
+        } catch (error) {
+            console.error('Failed to save order:', error);
+            loadFriends(); // Revert on error
+        }
+    };
+
+    const renderRightActions = (friendId: string) => (
+        <TouchableOpacity
+            style={styles.deleteAction}
+            onPress={() => handleDelete(friendId)}
+        >
+            <Ionicons name="trash-outline" size={24} color="#fff" />
+            <Text style={styles.deleteText}>{t('friends.remove')}</Text>
+        </TouchableOpacity>
+    );
+
+    const renderItem = ({ item, index }: { item: SociusFriend; index: number }) => {
         const roleLabel = t(`setup.roles.${item.role}`);
         const displayRole = roleLabel.startsWith('setup.roles.') ? item.role : roleLabel;
         const avatarSource = SOCIUS_AVATAR_MAP[item.avatar] || SOCIUS_AVATAR_MAP['socius-avatar-0'];
 
-        return (
+        const content = (
             <TouchableOpacity
-                style={[styles.friendItem, { backgroundColor: colors.card, shadowColor: colors.shadow }]}
+                style={[
+                    styles.friendItem,
+                    { backgroundColor: colors.card, shadowColor: colors.shadow }
+                ]}
                 onPress={() => handleChat(item)}
+                activeOpacity={0.9}
             >
                 <View style={styles.avatarContainer}>
                     <Image source={avatarSource} style={styles.avatar} />
@@ -99,17 +195,71 @@ export default function SociusManagerScreen() {
                     <Text style={[styles.name, { color: colors.text }]}>{item.name}</Text>
                     <Text style={[styles.role, { color: colors.textSecondary }]}>{displayRole}</Text>
                 </View>
-                <Ionicons name="chatbubble-ellipses-outline" size={24} color={colors.primary} />
+                {sortMode === 'custom' ? (
+                    <View style={styles.reorderButtons}>
+                        <TouchableOpacity onPress={() => moveItem(index, 'up')} disabled={index === 0}>
+                            <Ionicons name="chevron-up" size={22} color={index === 0 ? colors.border : colors.primary} />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => moveItem(index, 'down')} disabled={index === sortedFriends.length - 1}>
+                            <Ionicons name="chevron-down" size={22} color={index === sortedFriends.length - 1 ? colors.border : colors.primary} />
+                        </TouchableOpacity>
+                    </View>
+                ) : (
+                    <Ionicons name="chatbubble-ellipses-outline" size={24} color={colors.primary} />
+                )}
             </TouchableOpacity>
         );
+
+        // In custom mode, we don't use Swipeable to avoid gesture conflicts
+        if (sortMode === 'custom') {
+            return content;
+        }
+
+        return (
+            <Swipeable renderRightActions={() => renderRightActions(item.id)}>
+                {content}
+            </Swipeable>
+        );
+    };
+
+    // Cycle through sort modes on button press
+    const cycleSortMode = () => {
+        const modes: SortMode[] = ['recent', 'alphabetical', 'custom'];
+        const currentIndex = modes.indexOf(sortMode);
+        const nextIndex = (currentIndex + 1) % modes.length;
+        setSortMode(modes[nextIndex]);
+    };
+
+    const getSortIcon = () => {
+        switch (sortMode) {
+            case 'recent': return 'time-outline';
+            case 'alphabetical': return 'text-outline';
+            case 'custom': return 'reorder-four-outline';
+            default: return 'funnel-outline';
+        }
     };
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
-            <Stack.Screen options={{ title: t('friends.my_socius') }} />
+            <Stack.Screen
+                options={{
+                    title: t('friends.my_socius'),
+                    headerRight: () => (
+                        <TouchableOpacity
+                            onPress={cycleSortMode}
+                            style={styles.headerSortButton}
+                        >
+                            <Ionicons name={getSortIcon()} size={22} color={colors.primary} />
+                            <Text style={[styles.headerSortText, { color: colors.primary }]}>
+                                {t(`friends.sort_${sortMode}`)}
+                            </Text>
+                        </TouchableOpacity>
+                    )
+                }}
+            />
 
             <FlatList
-                data={friends}
+                data={sortedFriends}
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={renderItem}
                 contentContainerStyle={styles.listContent}
@@ -144,6 +294,17 @@ export default function SociusManagerScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+    },
+    headerSortButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        gap: 4,
+    },
+    headerSortText: {
+        fontSize: 13,
+        fontWeight: '600',
     },
     listContent: {
         padding: 20,
@@ -182,6 +343,21 @@ const styles = StyleSheet.create({
     },
     role: {
         fontSize: 14,
+    },
+    reorderButtons: {
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 2,
+    },
+    dragHandle: {
+        paddingRight: 12,
+        paddingVertical: 8,
+    },
+    draggingItem: {
+        opacity: 0.8,
+        transform: [{ scale: 1.02 }],
+        shadowOpacity: 0.15,
+        elevation: 8,
     },
     emptyContainer: {
         alignItems: 'center',
@@ -225,4 +401,19 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
+    deleteAction: {
+        backgroundColor: '#FF3B30',
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: 80,
+        marginBottom: 12,
+        borderRadius: 16,
+        marginLeft: 10,
+    },
+    deleteText: {
+        color: 'white',
+        fontWeight: '600',
+        fontSize: 12,
+        marginTop: 4,
+    }
 });
