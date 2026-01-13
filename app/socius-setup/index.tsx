@@ -11,9 +11,10 @@ import {
     ScrollView,
     Alert,
     Platform,
-    PanResponder,
-    KeyboardAvoidingView
+    KeyboardAvoidingView,
+    ActivityIndicator
 } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -65,25 +66,15 @@ export default function SociusSetupScreen() {
         tone: 'casual',
     });
     const [loading, setLoading] = useState(false);
+    const [avatarsLoading, setAvatarsLoading] = useState(true);
+    const [loadedAvatarCount, setLoadedAvatarCount] = useState(0);
+    const totalAvatars = Object.keys(SOCIUS_AVATAR_MAP).length;
 
     // --- Slider Logic ---
     const [, setSliderWidth] = useState(0);
-    const sliderWidthRef = React.useRef(0); // Use ref to avoid stale closures in PanResponder
+    const sliderWidthRef = React.useRef(0); // Use ref to avoid stale closures
 
-    const panResponder = React.useRef(
-        PanResponder.create({
-            onStartShouldSetPanResponder: () => true,
-            onMoveShouldSetPanResponder: () => true,
-            onPanResponderGrant: (evt) => {
-                handleTouch(evt.nativeEvent.locationX);
-            },
-            onPanResponderMove: (evt) => {
-                handleTouch(evt.nativeEvent.locationX);
-            },
-        })
-    ).current;
-
-    const handleTouch = (x: number) => {
+    const handleTouch = React.useCallback((x: number) => {
         const width = sliderWidthRef.current;
         if (width === 0) return;
 
@@ -94,7 +85,14 @@ export default function SociusSetupScreen() {
         if (newIntimacy > 7) newIntimacy = 7;
 
         updateState('intimacy', newIntimacy);
-    };
+    }, []);
+
+    const panGesture = Gesture.Pan()
+        .onStart((e) => handleTouch(e.x))
+        .onUpdate((e) => handleTouch(e.x))
+        .runOnJS(true);
+
+
 
     const updateState = (key: keyof SetupState, value: any) => {
         setState(prev => ({ ...prev, [key]: value }));
@@ -177,28 +175,54 @@ export default function SociusSetupScreen() {
         </ScrollView>
     );
 
-    const renderAvatarStep = () => (
-        <ScrollView contentContainerStyle={styles.gridContainer}>
-            <Text style={[styles.stepTitle, { color: colors.text }]}>{t('setup.step_avatar_title')}</Text>
-            <View style={[styles.grid, { justifyContent: 'center', gap: 24 }]}>
-                {Object.keys(SOCIUS_AVATAR_MAP).map(key => (
-                    <TouchableOpacity
-                        key={key}
-                        style={[
-                            styles.avatarOption,
-                            {
-                                borderColor: state.avatar === key ? colors.primary : 'transparent',
-                                transform: [{ scale: state.avatar === key ? 1.1 : 1 }]
-                            }
-                        ]}
-                        onPress={() => updateState('avatar', key)}
-                    >
-                        <Image source={SOCIUS_AVATAR_MAP[key]} style={styles.avatarImageLarge} />
-                    </TouchableOpacity>
-                ))}
-            </View>
-        </ScrollView>
-    );
+    const renderAvatarStep = () => {
+        const handleImageLoad = () => {
+            setLoadedAvatarCount(prev => {
+                const newCount = prev + 1;
+                if (newCount >= totalAvatars) {
+                    setAvatarsLoading(false);
+                }
+                return newCount;
+            });
+        };
+
+        return (
+            <ScrollView contentContainerStyle={styles.gridContainer}>
+                <Text style={[styles.stepTitle, { color: colors.text }]}>{t('setup.step_avatar_title')}</Text>
+
+                {avatarsLoading && (
+                    <View style={styles.avatarLoadingContainer}>
+                        <ActivityIndicator size="large" color={colors.primary} />
+                        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+                            {t('common.loading') || 'Loading...'}
+                        </Text>
+                    </View>
+                )}
+
+                <View style={[styles.grid, { justifyContent: 'center', gap: 24, opacity: avatarsLoading ? 0 : 1 }]}>
+                    {Object.keys(SOCIUS_AVATAR_MAP).map(key => (
+                        <TouchableOpacity
+                            key={key}
+                            style={[
+                                styles.avatarOption,
+                                {
+                                    borderColor: state.avatar === key ? colors.primary : 'transparent',
+                                    transform: [{ scale: state.avatar === key ? 1.1 : 1 }]
+                                }
+                            ]}
+                            onPress={() => updateState('avatar', key)}
+                        >
+                            <Image
+                                source={SOCIUS_AVATAR_MAP[key]}
+                                style={styles.avatarImageLarge}
+                                onLoad={handleImageLoad}
+                            />
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            </ScrollView>
+        );
+    };
 
     const renderNameStep = () => (
         <View style={styles.nameStepContainer}>
@@ -256,16 +280,17 @@ export default function SociusSetupScreen() {
                     ]} />
                 </View>
 
-                {/* Touch Area Area for dragging */}
-                <View
-                    style={styles.sliderTouchContainer}
-                    onLayout={(event) => {
-                        const { width } = event.nativeEvent.layout;
-                        setSliderWidth(width);
-                        sliderWidthRef.current = width;
-                    }}
-                    {...panResponder.panHandlers}
-                />
+                {/* Touch Area for dragging */}
+                <GestureDetector gesture={panGesture}>
+                    <View
+                        style={styles.sliderTouchContainer}
+                        onLayout={(event) => {
+                            const { width } = event.nativeEvent.layout;
+                            setSliderWidth(width);
+                            sliderWidthRef.current = width;
+                        }}
+                    />
+                </GestureDetector>
             </View>
             <Text style={[styles.helperText, { color: colors.textSecondary }]}>
                 {t('setup.step_intimacy_desc')}
@@ -523,5 +548,14 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 18,
         fontWeight: 'bold',
+    },
+    avatarLoadingContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 60,
+    },
+    loadingText: {
+        marginTop: 16,
+        fontSize: 16,
     },
 });

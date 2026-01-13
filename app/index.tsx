@@ -68,7 +68,13 @@ export default function LoginScreen() {
                 throw new Error('No ID token received');
             }
 
-            const response = await api.post('/auth/google', { id_token: idToken });
+            // Get Google profile photo
+            const googlePhoto = signInResult?.data?.user?.photo || null;
+
+            const response = await api.post('/auth/google', {
+                id_token: idToken,
+                photo: googlePhoto
+            });
             const { access_token } = response.data;
 
             await signIn(access_token);

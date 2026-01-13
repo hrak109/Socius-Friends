@@ -47,24 +47,24 @@ export const lightColors: ThemeColors = {
 };
 
 export const darkColors: ThemeColors = {
-    background: '#121212',
-    text: '#e0e0e0',
-    textSecondary: '#a0a0a0',
+    background: '#2a2a2a',
+    text: '#ececec',
+    textSecondary: '#b8b8b8',
     primary: '#8ab4f8',
-    card: '#1e1e1e',
-    border: '#333333',
+    card: '#353535',
+    border: '#505050',
     success: '#34a853',
     danger: '#ef5350',
     warning: '#fbbc04',
-    tabBar: '#1e1e1e',
+    tabBar: '#353535',
     tabBarActive: '#4285f4',
-    tabBarInactive: '#666666',
-    inputBackground: '#2c2c2c',
-    overlay: 'rgba(0,0,0,0.7)',
+    tabBarInactive: '#909090',
+    inputBackground: '#404040',
+    overlay: 'rgba(0,0,0,0.5)',
     shadow: '#000000',
     error: '#f28b82',
-    disabled: '#555555',
-    buttonText: '#121212',
+    disabled: '#707070',
+    buttonText: '#2a2a2a',
 };
 
 interface ThemeContextType {

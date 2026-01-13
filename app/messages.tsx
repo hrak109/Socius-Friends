@@ -56,16 +56,19 @@ export default function MessagesScreen() {
             // Load Socius AI friends from API
             try {
                 const sociusResponse = await api.get('/friends/socius');
-                const sociusThreads: ChatThread[] = (sociusResponse.data || []).map((comp: any) => ({
-                    id: `socius-${comp.id}`,
-                    type: 'socius',
-                    name: comp.name,
-                    avatar: comp.avatar,
-                    lastMessage: comp.last_message || "Nice to meet you!",
-                    lastMessageTime: comp.last_message_time,
-                    sociusRole: comp.role,
-                    unread: comp.unread_count || 0
-                }));
+                // Filter to only show Socius companions with actual messages
+                const sociusThreads: ChatThread[] = (sociusResponse.data || [])
+                    .filter((comp: any) => comp.last_message !== null)
+                    .map((comp: any) => ({
+                        id: `socius-${comp.id}`,
+                        type: 'socius',
+                        name: comp.name,
+                        avatar: comp.avatar,
+                        lastMessage: comp.last_message,
+                        lastMessageTime: comp.last_message_time,
+                        sociusRole: comp.role,
+                        unread: comp.unread_count || 0
+                    }));
 
                 // Combine and sort by last message time (newest first)
                 const allThreads = [...sociusThreads, ...userThreads].sort((a, b) => {

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import api from '../services/api';
 
 type UserProfileContextType = {
@@ -49,19 +49,36 @@ export const UserProfileProvider = ({ children }: { children: React.ReactNode })
                 setIsLoading(false);
             }
 
-            // 2. Fetch from API to update/sync in background
             try {
                 const res = await api.get('/users/me');
                 const data = res.data;
 
+                // Determine display name with Google first name fallback
+                let resolvedName = data.display_name;
+                if (!resolvedName) {
+                    try {
+                        const googleUser = await GoogleSignin.getCurrentUser();
+                        const googleFullName = googleUser?.user?.name;
+                        if (googleFullName) {
+                            resolvedName = googleFullName.split(' ')[0]; // First name only
+                        }
+                    } catch {
+                        // Google sign-in not available, ignore
+                    }
+                }
+                // Final fallback to username
+                if (!resolvedName) {
+                    resolvedName = data.username;
+                }
+
                 // Update state with fresh data
-                setDisplayName(data.display_name || data.username);
+                setDisplayName(resolvedName);
                 setUsername(data.username);
                 setDisplayAvatar(data.custom_avatar_url || 'user-1');
 
 
                 // Sync new data to storage
-                await AsyncStorage.setItem('user_display_name', data.display_name || data.username || '');
+                await AsyncStorage.setItem('user_display_name', resolvedName || '');
                 if (data.username) await AsyncStorage.setItem('user_username', data.username);
                 if (data.custom_avatar_url) await AsyncStorage.setItem('user_display_avatar', data.custom_avatar_url);
 

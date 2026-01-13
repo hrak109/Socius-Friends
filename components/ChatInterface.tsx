@@ -101,13 +101,21 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
 
             const fetchHistory = async () => {
                 try {
-                    const res = await api.get('/history', {
-                        params: { model: selectedModel, context }
-                    });
+                    let history: any[] = [];
+
+                    if (friendId) {
+                        // User-to-user DM: fetch from /messages/{friendId}
+                        const res = await api.get(`/messages/${friendId}`);
+                        history = res.data || [];
+                    } else {
+                        // Socius AI chat: fetch from /history
+                        const res = await api.get('/history', {
+                            params: { model: selectedModel, context }
+                        });
+                        history = res.data || [];
+                    }
 
                     if (!isActive) return;
-
-                    const history = res.data || [];
 
                     const formattedMessages: IMessage[] = history.map((msg: any) => {
                         const safeId = msg.id || Math.random();
@@ -124,19 +132,23 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
                             safeAvatar = PROFILE_AVATAR_MAP[displayAvatar];
                         }
 
+                        // DM uses is_me flag, Socius uses role
+                        const isFromMe = friendId ? msg.is_me : (msg.role === 'user');
+
                         return {
                             _id: safeId,
                             text: String(msg.content || ''),
                             createdAt: safeDate,
-                            user: msg.role === 'user' ? {
+                            user: isFromMe ? {
                                 _id: 1,
                                 name: displayName || user?.name || 'Me',
-                                avatar: safeAvatar
+                                avatar: safeAvatar || undefined
                             } : botUser,
                         };
                     });
 
-                    if (formattedMessages.length === 0) {
+                    if (formattedMessages.length === 0 && !friendId) {
+                        // Only show welcome for Socius, not for DMs
                         setMessages(prev => {
                             if (prev.length === 0) {
                                 return [{
@@ -163,36 +175,50 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
                 isActive = false;
             };
             // eslint-disable-next-line react-hooks/exhaustive-deps
-        }, [context, lastNotificationTime]) // Only re-create callback when context changes
+        }, [context, lastNotificationTime, friendId]) // Added friendId dependency
     );
 
     const handleSendQuestion = useCallback(async (text: string) => {
-        setIsTyping(true);
-        setIsWaitingForResponse(true); // Disable input
+        if (friendId) {
+            // User-to-user DM: POST to /messages
+            try {
+                await api.post('/messages', {
+                    receiver_id: friendId,
+                    content: text
+                });
+                // DMs don't need typing indicator or wait for AI response
+            } catch (error) {
+                console.error('Error sending DM:', error);
+            }
+        } else {
+            // Socius AI chat: POST to /ask
+            setIsTyping(true);
+            setIsWaitingForResponse(true);
 
-        // Set 60s timeout to re-enable
-        if (responseTimeoutRef.current) clearTimeout(responseTimeoutRef.current);
-        responseTimeoutRef.current = setTimeout(() => {
-            setIsWaitingForResponse(false);
-            setIsTyping(false);
-        }, 60000);
-
-        try {
-            await api.post('/ask', {
-                q_text: text,
-                model: selectedModel,
-                context, // Pass context
-                companion_id: companionId // Pass companion ID
-            });
-        } catch (error) {
-            console.error('Error sending question:', error);
-            setIsTyping(false);
-            setIsWaitingForResponse(false); // Re-enable on error
+            // Set 60s timeout to re-enable
             if (responseTimeoutRef.current) clearTimeout(responseTimeoutRef.current);
-            appendBotMessage('Sorry, I encountered an error sending your message.');
+            responseTimeoutRef.current = setTimeout(() => {
+                setIsWaitingForResponse(false);
+                setIsTyping(false);
+            }, 60000);
+
+            try {
+                await api.post('/ask', {
+                    q_text: text,
+                    model: selectedModel,
+                    context,
+                    companion_id: companionId
+                });
+            } catch (error) {
+                console.error('Error sending question:', error);
+                setIsTyping(false);
+                setIsWaitingForResponse(false);
+                if (responseTimeoutRef.current) clearTimeout(responseTimeoutRef.current);
+                appendBotMessage('Sorry, I encountered an error sending your message.');
+            }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedModel, context]);
+    }, [selectedModel, context, friendId, companionId]);
 
     const onSend = useCallback((newMessages: IMessage[] = []) => {
         setMessages((previousMessages) => GiftedChat.append(previousMessages, newMessages));
