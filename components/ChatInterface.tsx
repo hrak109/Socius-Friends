@@ -322,18 +322,21 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
             );
         }
 
-        // BOT AVATAR LOGIC
-        // 1. Try to use friendAvatar prop (key) from SOCIUS_AVATAR_MAP
-        // 2. Try to use friendAvatar prop as URI (if it's a URL)
-        // 3. Fallback to default
+        // OTHER USER/BOT AVATAR LOGIC
+        // 1. Try PROFILE_AVATAR_MAP (for user friends with custom avatars)
+        // 2. Try SOCIUS_AVATAR_MAP (for Socius companions)
+        // 3. Try as URL (for Google photos)
+        // 4. Fallback to default
 
         let source;
-        if (friendAvatar && SOCIUS_AVATAR_MAP[friendAvatar]) {
+        if (friendAvatar && PROFILE_AVATAR_MAP[friendAvatar]) {
+            source = PROFILE_AVATAR_MAP[friendAvatar];
+        } else if (friendAvatar && SOCIUS_AVATAR_MAP[friendAvatar]) {
             source = SOCIUS_AVATAR_MAP[friendAvatar];
-        } else if (friendAvatar) {
-            source = { uri: friendAvatar }; // Fallback for URLs
+        } else if (friendAvatar && friendAvatar.startsWith('http')) {
+            source = { uri: friendAvatar };
         } else {
-            source = SOCIUS_AVATAR_MAP['socius-icon']; // Default
+            source = SOCIUS_AVATAR_MAP['socius-avatar-0']; // Default
         }
 
         return <SociusAvatar source={source} />;

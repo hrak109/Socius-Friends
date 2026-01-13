@@ -16,7 +16,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useSession } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 import { useLanguage } from '../context/LanguageContext';
-import { SOCIUS_AVATAR_MAP } from '../constants/avatars';
+import { SOCIUS_AVATAR_MAP, PROFILE_AVATAR_MAP } from '../constants/avatars';
 import api from '../services/api';
 
 interface ChatThread {
@@ -126,11 +126,19 @@ export default function MessagesScreen() {
     };
 
     const renderThread = ({ item }: { item: ChatThread }) => {
-        const avatarSource = item.type === 'socius'
-            ? SOCIUS_AVATAR_MAP[item.avatar || 'socius-avatar-0']
-            : item.avatar
-                ? { uri: item.avatar }
-                : null;
+        let avatarSource = null;
+
+        if (item.type === 'socius') {
+            // Socius: use SOCIUS_AVATAR_MAP
+            avatarSource = SOCIUS_AVATAR_MAP[item.avatar || 'socius-avatar-0'];
+        } else if (item.avatar) {
+            // User: check if it's a PROFILE_AVATAR_MAP key, otherwise use as URL
+            if (PROFILE_AVATAR_MAP[item.avatar]) {
+                avatarSource = PROFILE_AVATAR_MAP[item.avatar];
+            } else if (item.avatar.startsWith('http')) {
+                avatarSource = { uri: item.avatar };
+            }
+        }
 
         return (
             <TouchableOpacity
@@ -165,6 +173,13 @@ export default function MessagesScreen() {
                             <View style={[styles.aiTag, { backgroundColor: colors.primary }]}>
                                 <Text style={styles.aiTagText}>
                                     {t('chat.socius')} {item.sociusRole ? `• ${t(`setup.roles.${item.sociusRole}`) !== `setup.roles.${item.sociusRole}` ? t(`setup.roles.${item.sociusRole}`) : (item.sociusRole.charAt(0).toUpperCase() + item.sociusRole.slice(1))}` : ''}
+                                </Text>
+                            </View>
+                        )}
+                        {item.type === 'user' && (
+                            <View style={[styles.aiTag, { backgroundColor: colors.success }]}>
+                                <Text style={styles.aiTagText}>
+                                    {t('friends.user_friend') || 'User. Friend.'}
                                 </Text>
                             </View>
                         )}

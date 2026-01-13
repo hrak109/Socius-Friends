@@ -106,6 +106,7 @@ export const translations = {
             sort_recent: 'Recent',
             sort_alphabetical: 'A-Z',
             sort_custom: 'Custom',
+            user_friend: 'User Friend',
         },
         profile: {
             title: 'Profile',
@@ -324,6 +325,7 @@ export const translations = {
             sort_recent: '최근순',
             sort_alphabetical: '가나다순',
             sort_custom: '사용자 정렬',
+            user_friend: '유저 친구',
         },
         profile: {
             title: '프로필',
