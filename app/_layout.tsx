@@ -1,11 +1,9 @@
-import { Stack, useRouter, useSegments, Link, router } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
-import 'dayjs/locale/ko'; // Import Korean locale for dayjs
+import 'dayjs/locale/ko'; /* Import Korean locale for dayjs */
 import { StatusBar } from 'expo-status-bar';
-import { Alert, Platform, TouchableOpacity } from 'react-native';
+import { TouchableOpacity, Image, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider, useTheme, darkColors } from '../context/ThemeContext';
 import { AuthProvider, useSession } from '../context/AuthContext';
@@ -13,9 +11,7 @@ import { LanguageProvider, useLanguage } from '../context/LanguageContext';
 import { NotificationProvider, useNotifications } from '../context/NotificationContext';
 import { UserProfileProvider, useUserProfile } from '../context/UserProfileContext';
 import ErrorBoundary from '../components/ErrorBoundary';
-import api from '../services/api';
 import { PROFILE_AVATAR_MAP } from '../constants/avatars';
-import { Image, View } from 'react-native';
 
 
 
@@ -23,6 +19,7 @@ const MessagesHeaderRight = () => {
     const { colors } = useTheme();
     const { displayAvatar } = useUserProfile();
     const { user } = useSession();
+    const router = useRouter();
 
     let avatarSource = null;
     if (displayAvatar && PROFILE_AVATAR_MAP[displayAvatar]) {
@@ -95,7 +92,7 @@ function RootLayoutNav() {
                 router.replace('/messages');
             }
         }
-    }, [session, segments, isAuthLoading]);
+    }, [session, segments, isAuthLoading, router]);
 
 
 

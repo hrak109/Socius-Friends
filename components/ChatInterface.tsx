@@ -39,7 +39,7 @@ interface ChatInterfaceProps {
 }
 
 export default function ChatInterface({ onClose, isModal = false, initialMessage = '', context = 'global', friendId, companionId, friendName, friendAvatar, showHeader = true }: ChatInterfaceProps) {
-    const { colors, avatarId } = useTheme();
+    const { colors } = useTheme();
     const { t, language } = useLanguage();
     const { displayName, displayAvatar } = useUserProfile();
 
@@ -81,7 +81,7 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
             setIsWaitingForResponse(false);
             if (responseTimeoutRef.current) clearTimeout(responseTimeoutRef.current);
         }
-    }, [lastMessage?.timestamp, lastMessage?.id, lastMessage?.context, lastMessage?.content, context, botUser]);
+    }, [lastMessage, lastMessage?.timestamp, lastMessage?.id, lastMessage?.context, lastMessage?.content, context, botUser]);
 
     useEffect(() => {
         if (initialMessage) {

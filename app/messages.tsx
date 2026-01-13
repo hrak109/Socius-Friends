@@ -134,14 +134,21 @@ export default function MessagesScreen() {
                 style={[styles.threadItem, { borderBottomColor: colors.border }]}
                 onPress={() => handleThreadPress(item)}
             >
-                <View style={[styles.avatarContainer, { backgroundColor: colors.primary }]}>
+                <View style={[
+                    styles.avatarContainer,
+                    {
+                        backgroundColor: item.type === 'socius' ? '#fff' : colors.primary,
+                        borderWidth: item.type === 'socius' ? 1 : 0,
+                        borderColor: colors.border
+                    }
+                ]}>
                     {avatarSource ? (
                         <Image source={avatarSource} style={styles.avatar} />
                     ) : (
                         <Ionicons
                             name={item.type === 'socius' ? 'sparkles' : 'person'}
                             size={24}
-                            color="#fff"
+                            color={item.type === 'socius' ? colors.primary : "#fff"}
                         />
                     )}
                 </View>

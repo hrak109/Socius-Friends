@@ -78,7 +78,7 @@ export default function ProfileScreen() {
                     : `${api.defaults.baseURL?.replace('/api/socius', '')}${res.data.custom_avatar_url}`;
                 setCustomAvatarUrl(url);
             }
-        } catch (_error) {
+        } catch {
             console.log('Failed to load backend profile');
         }
     };
@@ -107,7 +107,7 @@ export default function ProfileScreen() {
                 // or just rely on backend preferring custom_avatar_url.
                 // For now, we mainly upload it.
                 Alert.alert(t('common.success'), t('profile.avatar_uploaded'));
-            } catch (_error) {
+            } catch {
                 Alert.alert(t('common.error'), t('profile.avatar_upload_failed'));
             }
         }
@@ -117,7 +117,7 @@ export default function ProfileScreen() {
         try {
             await deleteAvatar();
             setCustomAvatarUrl(null);
-        } catch (_error) {
+        } catch {
             Alert.alert(t('common.error'), t('profile.avatar_remove_failed'));
         }
     };

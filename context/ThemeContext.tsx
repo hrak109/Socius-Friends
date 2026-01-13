@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useColorScheme } from 'react-native';
+import { useColorScheme, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as NavigationBar from 'expo-navigation-bar';
 
 type Theme = 'light' | 'dark';
 
@@ -74,6 +75,8 @@ interface ThemeContextType {
     isDark: boolean;
     avatarId: string;
     setAvatar: (id: string) => void;
+    accentColor: string;
+    setAccentColor: (color: string) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -81,8 +84,8 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const systemScheme = useColorScheme();
     const [theme, setTheme] = useState<Theme>(systemScheme === 'dark' ? 'dark' : 'light');
-
     const [avatarId, setAvatarId] = useState<string>('socius-icon');
+    const [accentColor, setAccentColorState] = useState<string>('#1a73e8');
 
     useEffect(() => {
         const loadSettings = async () => {
@@ -94,6 +97,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
                 const savedAvatar = await AsyncStorage.getItem('socius_avatar_preference');
                 if (savedAvatar) {
                     setAvatarId(savedAvatar);
+                }
+                const savedAccent = await AsyncStorage.getItem('app_accent_color');
+                if (savedAccent) {
+                    setAccentColorState(savedAccent);
                 }
             } catch (e) {
                 console.log('Failed to load settings');
@@ -121,10 +128,40 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-    const colors = theme === 'dark' ? darkColors : lightColors;
+    const setAccentColor = async (color: string) => {
+        setAccentColorState(color);
+        try {
+            await AsyncStorage.setItem('app_accent_color', color);
+        } catch (e) {
+            console.log('Failed to save accent color');
+        }
+    };
+
+    const baseColors = theme === 'dark' ? darkColors : lightColors;
+    const colors = {
+        ...baseColors,
+        primary: accentColor,
+        tabBarActive: accentColor,
+    };
+
+    useEffect(() => {
+        if (Platform.OS === 'android') {
+            NavigationBar.setBackgroundColorAsync(colors.background);
+            NavigationBar.setButtonStyleAsync(theme === 'dark' ? 'light' : 'dark');
+        }
+    }, [colors.background, theme]);
 
     return (
-        <ThemeContext.Provider value={{ theme, colors, toggleTheme, isDark: theme === 'dark', avatarId, setAvatar }}>
+        <ThemeContext.Provider value={{
+            theme,
+            colors,
+            toggleTheme,
+            isDark: theme === 'dark',
+            avatarId,
+            setAvatar,
+            accentColor,
+            setAccentColor
+        }}>
             {children}
         </ThemeContext.Provider>
     );

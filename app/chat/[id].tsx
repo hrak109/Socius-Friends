@@ -1,8 +1,5 @@
-import React from 'react';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, Stack } from 'expo-router';
 import ChatInterface from '../../components/ChatInterface';
-
-import { Stack } from 'expo-router';
 
 export default function ChatScreen() {
     const { id, type, name, avatar } = useLocalSearchParams<{

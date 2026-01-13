@@ -53,6 +53,7 @@ export default function LoginScreen() {
         checkAuthAndOnboarding();
 
         return () => { isMounted = false; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [session]); // Remove router from deps to avoid loop
 
     const handleGoogleSignIn = async () => {

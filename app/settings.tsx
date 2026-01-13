@@ -10,7 +10,7 @@ import { useLanguage } from '../context/LanguageContext';
 
 export default function SettingsScreen() {
     const router = useRouter();
-    const { colors, isDark, toggleTheme } = useTheme();
+    const { colors, isDark, toggleTheme, setAccentColor } = useTheme();
     const { signOut } = useSession();
     const { t, language, setLanguage } = useLanguage();
 
@@ -75,6 +75,39 @@ export default function SettingsScreen() {
                             {language === 'en' ? 'English' : '한국어'}
                         </Text>
                     </TouchableOpacity>
+                </View>
+
+                {/* Accent Color */}
+                <View style={[styles.section, { backgroundColor: colors.card }]}>
+                    <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+                        {t('settings.accent_color') !== 'settings.accent_color' ? t('settings.accent_color') : 'Accent Color'}
+                    </Text>
+
+                    <View style={styles.colorContainer}>
+                        {[
+                            '#1a73e8', // Blue
+                            '#7b1fa2', // Purple
+                            '#34a853', // Green
+                            '#f57c00', // Orange
+                            '#e91e63', // Pink
+                            '#d32f2f', // Red
+                            '#00897b', // Teal
+                        ].map((color) => (
+                            <TouchableOpacity
+                                key={color}
+                                style={[
+                                    styles.colorCircle,
+                                    { backgroundColor: color },
+                                    colors.primary === color && styles.selectedColorCircle
+                                ]}
+                                onPress={() => setAccentColor(color)}
+                            >
+                                {colors.primary === color && (
+                                    <Ionicons name="checkmark" size={16} color="#fff" />
+                                )}
+                            </TouchableOpacity>
+                        ))}
+                    </View>
                 </View>
 
                 {/* Account */}
@@ -150,5 +183,28 @@ const styles = StyleSheet.create({
     },
     rowValue: {
         fontSize: 16,
+    },
+    colorContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        padding: 16,
+        gap: 16,
+    },
+    colorCircle: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: 'transparent',
+    },
+    selectedColorCircle: {
+        transform: [{ scale: 1.1 }],
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
     },
 });

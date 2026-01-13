@@ -67,7 +67,7 @@ export default function SociusSetupScreen() {
     const [loading, setLoading] = useState(false);
 
     // --- Slider Logic ---
-    const [sliderWidth, setSliderWidth] = useState(0);
+    const [, setSliderWidth] = useState(0);
     const sliderWidthRef = React.useRef(0); // Use ref to avoid stale closures in PanResponder
 
     const panResponder = React.useRef(
@@ -299,7 +299,7 @@ export default function SociusSetupScreen() {
                             styles.toneExample,
                             { color: state.tone === tone.id ? 'rgba(255,255,255,0.8)' : colors.textSecondary }
                         ]}>
-                            "{t(`setup.tones.${tone.id}_example`)}"
+                            &quot;{t(`setup.tones.${tone.id}_example`)}&quot;
                         </Text>
                     </TouchableOpacity>
                 ))}

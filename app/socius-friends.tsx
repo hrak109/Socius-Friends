@@ -148,21 +148,7 @@ export default function SociusManagerScreen() {
         }
     };
 
-    const handleDragEnd = async (data: SociusFriend[]) => {
-        // Update local state with new order
-        const updatedWithOrder = data.map((f, idx) => ({ ...f, sort_order: idx }));
-        setFriends(updatedWithOrder);
 
-        // Persist to backend
-        try {
-            await api.patch('/friends/socius/order', {
-                orders: updatedWithOrder.map(f => ({ id: parseInt(f.id), sort_order: f.sort_order }))
-            });
-        } catch (error) {
-            console.error('Failed to save order:', error);
-            loadFriends(); // Revert on error
-        }
-    };
 
     const renderRightActions = (friendId: string) => (
         <TouchableOpacity

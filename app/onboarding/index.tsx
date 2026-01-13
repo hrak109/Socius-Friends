@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Image, FlatList, Dimensions, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Image, FlatList, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, Stack } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -8,7 +8,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import * as Haptics from 'expo-haptics';
 
-const SCREEN_WIDTH = Dimensions.get('window').width;
+
 const ITEM_HEIGHT = 70; // Height of each language item
 // Visible window height for the picker (e.g., 3 items visible, middle one selected)
 const PICKER_HEIGHT = ITEM_HEIGHT * 5;
@@ -35,7 +35,7 @@ export default function OnboardingScreen() {
                 flatListRef.current?.scrollToIndex({ index: initialIndex, animated: false });
             }, 100);
         }
-    }, []);
+    }, [language]);
 
     const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
         const offsetY = event.nativeEvent.contentOffset.y;
