@@ -25,7 +25,11 @@
       },
       "package": "com.hai.socius.friends",
       "googleServicesFile": "./google-services.json",
-      "launchMode": "singleTask"
+      "launchMode": "singleTask",
+      "navigationBar": {
+        "backgroundColor": "#1e1e1e",
+        "barStyle": "light-content"
+      }
     },
     "web": {
       "bundler": "metro",

@@ -71,14 +71,7 @@ function RootLayoutNav() {
         setRouteSegments(segments);
     }, [segments, setRouteSegments]);
 
-    // Configure Android navigation bar based on theme
-    useEffect(() => {
-        if (Platform.OS === 'android') {
-            const NavigationBar = require('expo-navigation-bar');
-            NavigationBar.setBackgroundColorAsync(colors.background);
-            NavigationBar.setButtonStyleAsync(colors === darkColors ? 'light' : 'dark');
-        }
-    }, [colors]);
+
 
     useEffect(() => {
         if (isAuthLoading) return;
