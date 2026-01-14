@@ -60,7 +60,8 @@ export default function SettingsScreen() {
                         <Switch
                             value={isDark}
                             onValueChange={toggleTheme}
-                            trackColor={{ false: colors.border, true: colors.primary }}
+                            thumbColor={isDark ? colors.primary : '#f4f3f4'}
+                            trackColor={{ false: '#767577', true: isDark ? '#3e3e3e' : colors.primary }}
                         />
                     </View>
 
@@ -80,7 +81,7 @@ export default function SettingsScreen() {
                 {/* Accent Color */}
                 <View style={[styles.section, { backgroundColor: colors.card }]}>
                     <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-                        {t('settings.accent_color') !== 'settings.accent_color' ? t('settings.accent_color') : 'Accent Color'}
+                        {t('settings.accent_color')}
                     </Text>
 
                     <View style={styles.colorContainer}>
@@ -140,6 +141,19 @@ export default function SettingsScreen() {
                             </Text>
                         </View>
                         <Text style={[styles.rowValue, { color: colors.textSecondary }]}>1.0.0</Text>
+                    </View>
+
+                    <View style={styles.row}>
+                        <View style={styles.rowLeft}>
+                            <Ionicons name="code-slash-outline" size={22} color={colors.text} />
+                            <Text style={[styles.rowText, { color: colors.text }]}>
+                                {t('settings.developer')}
+                            </Text>
+                        </View>
+                        <View style={{ alignItems: 'flex-end' }}>
+                            <Text style={[styles.rowValue, { color: colors.textSecondary, fontSize: 14 }]}>Hee Bae 배희락</Text>
+                            <Text style={{ color: colors.textSecondary, fontSize: 12 }}>hrak109@gmail.com</Text>
+                        </View>
                     </View>
                 </View>
             </ScrollView>

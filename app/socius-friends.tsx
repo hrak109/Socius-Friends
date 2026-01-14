@@ -17,6 +17,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import api from '../services/api';
 import { SOCIUS_AVATAR_MAP } from '../constants/avatars';
+import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
 
 interface SociusFriend {
     id: string;
@@ -125,17 +126,24 @@ export default function SociusManagerScreen() {
         );
     };
 
-    const moveItem = async (fromIndex: number, direction: 'up' | 'down') => {
-        const toIndex = direction === 'up' ? fromIndex - 1 : fromIndex + 1;
-        if (toIndex < 0 || toIndex >= sortedFriends.length) return;
-
-        const newList = [...sortedFriends];
-        const [moved] = newList.splice(fromIndex, 1);
-        newList.splice(toIndex, 0, moved);
-
+    const handleDragEnd = async ({ data }: { data: SociusFriend[] }) => {
         // Update local state first (optimistic)
-        const updatedWithOrder = newList.map((f, idx) => ({ ...f, sort_order: idx }));
-        setFriends(updatedWithOrder);
+        const updatedWithOrder = data.map((f, idx) => ({ ...f, sort_order: idx }));
+
+        // When in custom mode, setFriends needs to reflect the new order entirely
+        // But since friends usually includes all, we need to be careful. 
+        // Assuming custom sort shows ALL friends, we can just set data.
+        // However, sortedFriends is derived. So we need to update the base 'friends' state 
+        // such that when sorted by 'custom', it produces this order.
+        // The easiest way is to update 'friends' with the new sort_order values.
+
+        // Map current friends to new metrics
+        const newFriendsState = friends.map(f => {
+            const newOrder = updatedWithOrder.find(updated => updated.id === f.id)?.sort_order;
+            return { ...f, sort_order: newOrder ?? f.sort_order };
+        });
+
+        setFriends(newFriendsState);
 
         // Persist to backend
         try {
@@ -149,7 +157,6 @@ export default function SociusManagerScreen() {
     };
 
 
-
     const renderRightActions = (friendId: string) => (
         <TouchableOpacity
             style={styles.deleteAction}
@@ -160,18 +167,25 @@ export default function SociusManagerScreen() {
         </TouchableOpacity>
     );
 
-    const renderItem = ({ item, index }: { item: SociusFriend; index: number }) => {
+    const renderItem = ({ item, drag, isActive }: RenderItemParams<SociusFriend>) => {
         const roleLabel = t(`setup.roles.${item.role}`);
         const displayRole = roleLabel.startsWith('setup.roles.') ? item.role : roleLabel;
         const avatarSource = SOCIUS_AVATAR_MAP[item.avatar] || SOCIUS_AVATAR_MAP['socius-avatar-0'];
+        const isCustomSort = sortMode === 'custom';
 
         const content = (
             <TouchableOpacity
                 style={[
                     styles.friendItem,
-                    { backgroundColor: colors.card, shadowColor: colors.shadow }
+                    {
+                        backgroundColor: colors.card,
+                        shadowColor: colors.shadow,
+                        opacity: isActive ? 0.5 : 1
+                    }
                 ]}
                 onPress={() => handleChat(item)}
+                onLongPress={isCustomSort ? drag : undefined}
+                disabled={isActive}
                 activeOpacity={0.9}
             >
                 <View style={styles.avatarContainer}>
@@ -181,14 +195,9 @@ export default function SociusManagerScreen() {
                     <Text style={[styles.name, { color: colors.text }]}>{item.name}</Text>
                     <Text style={[styles.role, { color: colors.textSecondary }]}>{displayRole}</Text>
                 </View>
-                {sortMode === 'custom' ? (
+                {isCustomSort ? (
                     <View style={styles.reorderButtons}>
-                        <TouchableOpacity onPress={() => moveItem(index, 'up')} disabled={index === 0}>
-                            <Ionicons name="chevron-up" size={22} color={index === 0 ? colors.border : colors.primary} />
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => moveItem(index, 'down')} disabled={index === sortedFriends.length - 1}>
-                            <Ionicons name="chevron-down" size={22} color={index === sortedFriends.length - 1 ? colors.border : colors.primary} />
-                        </TouchableOpacity>
+                        <Ionicons name="reorder-three-outline" size={24} color={colors.textSecondary} />
                     </View>
                 ) : (
                     <Ionicons name="chatbubble-ellipses-outline" size={24} color={colors.primary} />
@@ -197,8 +206,12 @@ export default function SociusManagerScreen() {
         );
 
         // In custom mode, we don't use Swipeable to avoid gesture conflicts
-        if (sortMode === 'custom') {
-            return content;
+        if (isCustomSort) {
+            return (
+                <ScaleDecorator>
+                    {content}
+                </ScaleDecorator>
+            );
         }
 
         return (
@@ -244,25 +257,51 @@ export default function SociusManagerScreen() {
                 }}
             />
 
-            <FlatList
-                data={sortedFriends}
-                keyExtractor={(item) => item.id.toString()}
-                renderItem={renderItem}
-                contentContainerStyle={styles.listContent}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-                ListEmptyComponent={
-                    !loading ? (
-                        <View style={styles.emptyContainer}>
-                            <View style={[styles.emptyIconContainer, { backgroundColor: colors.card }]}>
-                                <Ionicons name="sparkles-outline" size={48} color={colors.primary} />
+            {sortMode === 'custom' ? (
+                <DraggableFlatList
+                    data={sortedFriends}
+                    keyExtractor={(item) => item.id.toString()}
+                    renderItem={renderItem}
+                    // For typical DraggableFlatList usage, you pass onDragEnd.
+                    onDragEnd={handleDragEnd}
+                    contentContainerStyle={styles.listContent}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+                    ListEmptyComponent={
+                        !loading ? (
+                            <View style={styles.emptyContainer}>
+                                <View style={[styles.emptyIconContainer, { backgroundColor: colors.card }]}>
+                                    <Ionicons name="sparkles-outline" size={48} color={colors.primary} />
+                                </View>
+                                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                                    {t('friends.no_socius')}
+                                </Text>
                             </View>
-                            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                                {t('friends.no_socius')}
-                            </Text>
-                        </View>
-                    ) : null
-                }
-            />
+                        ) : null
+                    }
+                />
+            ) : (
+                <FlatList
+                    data={sortedFriends}
+                    keyExtractor={(item) => item.id.toString()}
+                    // Need to cast renderItem because FlatList and DraggableFlatList signatures differ slightly,
+                    // but we designed renderItem to handle both (drag is optional).
+                    renderItem={renderItem as any}
+                    contentContainerStyle={styles.listContent}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+                    ListEmptyComponent={
+                        !loading ? (
+                            <View style={styles.emptyContainer}>
+                                <View style={[styles.emptyIconContainer, { backgroundColor: colors.card }]}>
+                                    <Ionicons name="sparkles-outline" size={48} color={colors.primary} />
+                                </View>
+                                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                                    {t('friends.no_socius')}
+                                </Text>
+                            </View>
+                        ) : null
+                    }
+                />
+            )}
 
             <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
                 <TouchableOpacity
@@ -333,7 +372,8 @@ const styles = StyleSheet.create({
     reorderButtons: {
         flexDirection: 'column',
         alignItems: 'center',
-        gap: 2,
+        justifyContent: 'center',
+        width: 30, // Fixed width for alignment
     },
     dragHandle: {
         paddingRight: 12,

@@ -43,6 +43,7 @@ const ROLES = [
     { id: 'tracker', label: 'Calorie Tracker', icon: 'nutrition' },
     { id: 'casual', label: 'Casual', icon: 'cafe' },
     { id: 'romantic', label: 'Romantic', icon: 'heart' },
+    { id: 'workout', label: 'Workout Friend', icon: 'fitness' },
     { id: 'assistant', label: 'Personal Assistant', icon: 'calendar' },
 ];
 

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
     StyleSheet,
     View,
@@ -6,8 +6,7 @@ import {
     FlatList,
     TouchableOpacity,
     Image,
-    RefreshControl,
-    ScrollView
+    RefreshControl
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +17,21 @@ import { useNotifications } from '../context/NotificationContext';
 import { useLanguage } from '../context/LanguageContext';
 import { SOCIUS_AVATAR_MAP, PROFILE_AVATAR_MAP } from '../constants/avatars';
 import api from '../services/api';
+import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const APPS_ORDER_KEY = 'user_apps_order_v1';
+
+const DEFAULT_APPS = [
+    { id: 'socius', label: 'friends.socius_friend', icon: 'sparkles', color: '#007AFF', route: '/socius-friends' },
+    { id: 'friends', label: 'friends.title', icon: 'people', color: '#34C759', route: '/friends' },
+    { id: 'bible', label: 'bible.title', icon: 'book', color: '#8B4513', route: '/bible' },
+    { id: 'calories', label: 'calories.title', icon: 'nutrition', color: '#E0245E', route: '/calories' },
+    { id: 'passwords', label: 'passwords.title', icon: 'key', color: '#5856D6', route: '/passwords' },
+    { id: 'notes', label: 'notes.title', icon: 'document-text', color: '#FF9500', route: '/notes' },
+    { id: 'diary', label: 'diary.title', icon: 'journal', color: '#FF2D55', route: '/diary' },
+    { id: 'workout', label: 'workout.title', icon: 'fitness', color: '#FF3B30', route: '/workout' },
+];
 
 interface ChatThread {
     id: string;
@@ -38,6 +52,67 @@ export default function MessagesScreen() {
     const { lastNotificationTime } = useNotifications();
     const [threads, setThreads] = useState<ChatThread[]>([]);
     const [refreshing, setRefreshing] = useState(false);
+    const [apps, setApps] = useState(DEFAULT_APPS);
+
+    useEffect(() => {
+        loadAppsOrder();
+    }, []);
+
+    const loadAppsOrder = async () => {
+        try {
+            const saved = await AsyncStorage.getItem(APPS_ORDER_KEY);
+            if (saved) {
+                const savedOrder = JSON.parse(saved);
+                // Merge with default to ensure new apps appear
+                // Get objects for saved order, filtering out any that no longer exist in DEFAULT_APPS
+                const savedAppObjects = savedOrder
+                    .map((id: string) => DEFAULT_APPS.find(a => a.id === id))
+                    .filter((app: typeof DEFAULT_APPS[0] | undefined): app is typeof DEFAULT_APPS[0] => app !== undefined);
+
+                // Identify and append new apps not present in saved order
+                const newAppObjects = DEFAULT_APPS.filter(a => !savedOrder.includes(a.id));
+
+                setApps([...savedAppObjects, ...newAppObjects]);
+            }
+        } catch (error) {
+            console.error('Failed to load apps order', error);
+        }
+    };
+
+    const handleDragEnd = async ({ data }: { data: typeof DEFAULT_APPS }) => {
+        setApps(data);
+        try {
+            const order = data.map(a => a.id);
+            await AsyncStorage.setItem(APPS_ORDER_KEY, JSON.stringify(order));
+        } catch (error) {
+            console.error('Failed to save apps order', error);
+        }
+    };
+
+    const renderAppItem = ({ item, drag, isActive }: RenderItemParams<typeof DEFAULT_APPS[0]>) => {
+        return (
+            <ScaleDecorator>
+                <TouchableOpacity
+                    style={[styles.appItem, { opacity: isActive ? 0.5 : 1 }]}
+                    onPress={() => router.push(item.route as any)}
+                    onLongPress={drag}
+                    disabled={isActive}
+                >
+                    <View style={[
+                        styles.appIcon,
+                        {
+                            backgroundColor: item.color,
+                            shadowColor: item.color,
+                            shadowOpacity: 0.25
+                        }
+                    ]}>
+                        <Ionicons name={item.icon as any} size={24} color="#fff" />
+                    </View>
+                    <Text style={[styles.appLabel, { color: colors.text }]}>{t(item.label)}</Text>
+                </TouchableOpacity>
+            </ScaleDecorator>
+        );
+    };
 
     const loadThreads = useCallback(async () => {
         try {
@@ -207,35 +282,20 @@ export default function MessagesScreen() {
         );
     };
 
+    // Replace render logic
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
-            {/* Apps Row (Horizontal Scroll) */}
+            {/* Apps Row (Draggable) */}
             <View style={styles.appsContainer}>
-                <ScrollView
+                <DraggableFlatList
+                    data={apps}
+                    onDragEnd={handleDragEnd}
+                    keyExtractor={(item) => item.id}
+                    renderItem={renderAppItem}
                     horizontal
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.appsContent}
-                >
-                    <TouchableOpacity
-                        style={styles.appItem}
-                        onPress={() => router.push('/socius-friends')}
-                    >
-                        <View style={[styles.appIcon, { backgroundColor: '#007AFF', shadowColor: '#007AFF', shadowOpacity: 0.25 }]}>
-                            <Ionicons name="sparkles" size={30} color="#fff" />
-                        </View>
-                        <Text style={[styles.appLabel, { color: colors.text }]}>{t('friends.socius_friend')}</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.appItem}
-                        onPress={() => router.push('/friends')}
-                    >
-                        <View style={[styles.appIcon, { backgroundColor: '#34C759', shadowColor: '#34C759', shadowOpacity: 0.25 }]}>
-                            <Ionicons name="people" size={30} color="#fff" />
-                        </View>
-                        <Text style={[styles.appLabel, { color: colors.text }]}>{t('friends.title')}</Text>
-                    </TouchableOpacity>
-                </ScrollView>
+                />
             </View>
 
             {/* Threads List */}
@@ -265,31 +325,31 @@ export default function MessagesScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     appsContainer: {
-        paddingVertical: 15,
+        paddingVertical: 10,
         paddingHorizontal: 0,
     },
     appsContent: {
-        paddingHorizontal: 20,
-        gap: 20,
+        paddingHorizontal: 16,
+        gap: 12,
     },
     appItem: {
         alignItems: 'center',
-        width: 70,
+        width: 60,
     },
     appIcon: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
+        width: 48,
+        height: 48,
+        borderRadius: 24,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 8,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
-        elevation: 5,
+        marginBottom: 4,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 3,
     },
     appLabel: {
-        fontSize: 12,
+        fontSize: 10,
         fontWeight: '500',
         textAlign: 'center',
     },

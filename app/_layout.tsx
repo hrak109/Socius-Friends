@@ -131,7 +131,13 @@ function RootLayoutNav() {
                 <Stack.Screen name="friends" options={{ title: t('friends.title') }} />
                 <Stack.Screen name="socius-friends" options={{ title: t('friends.socius_friend') }} />
                 <Stack.Screen name="settings" options={{ title: t('settings.title') }} />
+                <Stack.Screen name="bible" options={{ title: t('bible.title'), headerShown: false }} />
+                <Stack.Screen name="calories" options={{ title: t('calories.title') }} />
+                <Stack.Screen name="passwords" options={{ title: t('passwords.title') }} />
+                <Stack.Screen name="notes" options={{ title: t('notes.title') }} />
+                <Stack.Screen name="diary" options={{ title: t('diary.title') }} />
                 <Stack.Screen name="socius-setup/index" options={{ headerShown: false }} />
+                <Stack.Screen name="workout" options={{ title: t('workout.title') }} />
                 <Stack.Screen name="onboarding/index" options={{ headerShown: false }} />
             </Stack>
         </>
