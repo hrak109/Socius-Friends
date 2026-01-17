@@ -447,6 +447,7 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
                     }}
                     keyboardShouldPersistTaps="handled"
                     bottomOffset={Platform.OS === 'ios' ? 34 : 0}
+                    dateFormat={language === 'ko' ? 'M월 D일' : undefined}
                     onLongPress={(context, message) => {
                         if (message.text) {
                             Clipboard.setStringAsync(message.text);

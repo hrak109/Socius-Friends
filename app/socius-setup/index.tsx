@@ -84,28 +84,24 @@ export default function SociusSetupScreen() {
     const totalAvatars = Object.keys(SOCIUS_AVATAR_MAP).length;
 
     // --- Slider Logic ---
-    const [, setSliderWidth] = useState(0);
-    const sliderWidthRef = React.useRef(0); // Use ref to avoid stale closures
+    const [sliderWidth, setSliderWidth] = useState(0);
 
     const handleTouch = React.useCallback((x: number) => {
-        const width = sliderWidthRef.current;
-        if (width === 0) return;
+        if (sliderWidth === 0) return;
 
-        let newIntimacy = Math.round((x / width) * 6) + 1;
+        let newIntimacy = Math.round((x / sliderWidth) * 6) + 1;
 
         // Clamp values
         if (newIntimacy < 1) newIntimacy = 1;
         if (newIntimacy > 7) newIntimacy = 7;
 
         updateState('intimacy', newIntimacy);
-    }, []);
+    }, [sliderWidth]);
 
-    const panGesture = Gesture.Pan()
+    const panGesture = React.useMemo(() => Gesture.Pan()
         .onStart((e) => handleTouch(e.x))
         .onUpdate((e) => handleTouch(e.x))
-        .runOnJS(true);
-
-
+        .runOnJS(true), [handleTouch]);
 
     const updateState = (key: keyof SetupState, value: any) => {
         setState(prev => ({ ...prev, [key]: value }));
@@ -312,7 +308,6 @@ export default function SociusSetupScreen() {
                         onLayout={(event) => {
                             const { width } = event.nativeEvent.layout;
                             setSliderWidth(width);
-                            sliderWidthRef.current = width;
                         }}
                     />
                 </GestureDetector>
