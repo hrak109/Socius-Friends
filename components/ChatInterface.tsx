@@ -349,11 +349,14 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
             try {
                 const data = JSON.parse(jsonMatch[1]);
                 if (data.type === 'calorie_event') {
+                    // Try multiple possible keys for food name (LLMs may vary)
+                    const foodName = data.food || data.name || data.item || data.title || 'Food';
+
                     widget = (
                         <View style={{ padding: 5, width: 250, marginTop: 10 }}>
                             <CalorieWidget
-                                food={data.food}
-                                options={data.options}
+                                food={foodName}
+                                options={data.options || []}
                                 messageId={currentMessage._id}
                             />
                         </View>
