@@ -59,7 +59,12 @@ export default function CalorieWidget({ food, options, messageId, onLogged }: Ca
     const handleLog = async (calories: number) => {
         setLoading(true);
         try {
-            await addEntry(food, calories);
+            // Debug: log what we're passing
+            console.log('CalorieWidget handleLog - food:', food, 'calories:', calories);
+
+            // Ensure food is a string at call time
+            const foodToLog = food || 'Unknown Food';
+            await addEntry(foodToLog, calories);
             setLogged(true);
 
             // Persist status

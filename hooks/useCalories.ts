@@ -33,10 +33,17 @@ export function useCalories() {
         loadEntries();
     }, [loadEntries]);
 
-    const addEntry = useCallback(async (food: string, calories: number) => {
+    const addEntry = useCallback(async (food: string | string[], calories: number) => {
         try {
-            // Guard against undefined/null food
-            const safeFoodName = (typeof food === 'string' ? food : 'Unknown Food').trim() || 'Unknown Food';
+            // Guard against undefined/null food, and handle arrays
+            let safeFoodName: string;
+            if (Array.isArray(food)) {
+                safeFoodName = food.join(', ').trim() || 'Unknown Food';
+            } else if (typeof food === 'string') {
+                safeFoodName = food.trim() || 'Unknown Food';
+            } else {
+                safeFoodName = 'Unknown Food';
+            }
 
             const now = new Date();
             const dateStr = now.toISOString().split('T')[0];
