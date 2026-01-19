@@ -93,7 +93,11 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
 
     // Listen for real-time messages from SSE via NotificationContext
     useEffect(() => {
-        if (lastMessage && lastMessage.context === context && lastMessage.content) {
+        // Match SSE message to this chat by checking both context and threadId
+        const isForThisChat = lastMessage && lastMessage.content &&
+            (lastMessage.context === context || lastMessage.context === threadId);
+
+        if (isForThisChat) {
             // Avoid processing the same message twice
             if (processedMessageIds.current.has(lastMessage.id)) {
                 return;
@@ -108,11 +112,16 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
                 user: botUser,
             };
             setMessages((prev) => GiftedChat.append(prev, [newMsg]));
+
+            // Clear ALL typing indicators for this chat
             setIsTyping(false);
             setIsWaitingForResponse(false);
+            setTyping(threadId, false); // Clear global typing state
+            setTyping(context, false);  // Also clear by context just in case
+
             if (responseTimeoutRef.current) clearTimeout(responseTimeoutRef.current);
         }
-    }, [lastMessage, lastMessage?.timestamp, lastMessage?.id, lastMessage?.context, lastMessage?.content, context, botUser]);
+    }, [lastMessage, lastMessage?.timestamp, lastMessage?.id, lastMessage?.context, lastMessage?.content, context, threadId, botUser, setTyping]);
 
     useEffect(() => {
         if (initialMessage) {
@@ -214,6 +223,17 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
                     } else {
                         const reversedMessages = formattedMessages.reverse();
                         setMessages(reversedMessages);
+
+                        // Clear typing indicator if we received bot messages
+                        const hasBotMessages = reversedMessages.some(m => m.user._id !== 1);
+                        if (hasBotMessages && !friendId) {
+                            setIsTyping(false);
+                            setIsWaitingForResponse(false);
+                            setTyping(threadId, false);
+                            setTyping(context, false);
+                            if (responseTimeoutRef.current) clearTimeout(responseTimeoutRef.current);
+                        }
+
                         // Cache fresh messages
                         const toCache: CachedMessage[] = reversedMessages.map((m) => ({
                             _id: m._id,
@@ -263,12 +283,13 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
             const currentThreadId = companionId ? `socius-${companionId}` : context;
             setTyping(currentThreadId, true);
 
-            // Set 60s timeout to re-enable
+            // Set 30s timeout to re-enable (fallback if SSE fails)
             if (responseTimeoutRef.current) clearTimeout(responseTimeoutRef.current);
             responseTimeoutRef.current = setTimeout(() => {
                 setIsTyping(false);
+                setIsWaitingForResponse(false);
                 setTyping(currentThreadId, false);
-            }, 120000);
+            }, 30000);
 
             try {
                 await api.post('/ask', {

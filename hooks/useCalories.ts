@@ -35,12 +35,15 @@ export function useCalories() {
 
     const addEntry = useCallback(async (food: string, calories: number) => {
         try {
+            // Guard against undefined/null food
+            const safeFoodName = (typeof food === 'string' ? food : 'Unknown Food').trim() || 'Unknown Food';
+
             const now = new Date();
             const dateStr = now.toISOString().split('T')[0];
 
             const newEntry: CalorieEntry = {
                 id: Date.now().toString(),
-                food: food.trim(),
+                food: safeFoodName,
                 calories,
                 date: dateStr,
                 timestamp: now.getTime(),
