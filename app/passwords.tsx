@@ -299,6 +299,7 @@ export default function PasswordsScreen() {
                 <KeyboardAvoidingView
                     behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                     style={{ flex: 1 }}
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
                 >
                     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                         <View style={styles.modalOverlay}>
