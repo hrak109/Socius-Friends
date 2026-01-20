@@ -14,7 +14,7 @@ import {
 import { Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '../services/api';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import AppSpecificChatHead from '../components/AppSpecificChatHead';
@@ -84,25 +84,42 @@ export default function WorkoutScreen() {
 
     const loadData = async () => {
         try {
-            const savedStats = await AsyncStorage.getItem(STATS_KEY);
-            const savedActivities = await AsyncStorage.getItem(ACTIVITIES_KEY);
-
-            if (savedStats) {
-                const parsed = JSON.parse(savedStats);
-                setStats(parsed);
-                // Pre-fill form inputs for editing
-                setWeightInput(parsed.weight?.toString() || '');
-                setHeightInput(parsed.height?.toString() || '');
-                setAgeInput(parsed.age?.toString() || '');
-                setGenderInput(parsed.gender || 'male');
-                setActivityLevelInput(parsed.activityLevel || 'moderate');
-            } else {
-                setShowStatsModal(true); // Prompt if no stats
+            // Load Stats
+            try {
+                const statsRes = await api.get('/workouts/stats');
+                setStats(statsRes.data);
+                // Pre-fill form
+                setWeightInput(statsRes.data.weight?.toString() || '');
+                setHeightInput(statsRes.data.height?.toString() || '');
+                setAgeInput(statsRes.data.age?.toString() || '');
+                setGenderInput(statsRes.data.gender || 'male');
+                setActivityLevelInput(statsRes.data.activityLevel || 'moderate');
+            } catch (e: any) {
+                if (e.response && e.response.status === 404) {
+                    setShowStatsModal(true); // Prompt if no stats
+                } else {
+                    console.error('Failed to load stats', e);
+                }
             }
 
-            if (savedActivities) {
-                setActivities(JSON.parse(savedActivities));
+            // Load Activities
+            try {
+                const actRes = await api.get('/workouts/activities');
+                if (Array.isArray(actRes.data)) {
+                    const mapped = actRes.data.map((a: any) => ({
+                        id: a.client_id,
+                        name: a.name,
+                        duration: a.duration,
+                        calories: a.calories,
+                        date: a.date,
+                        timestamp: a.timestamp
+                    }));
+                    setActivities(mapped);
+                }
+            } catch (e) {
+                console.error('Failed to load activities', e);
             }
+
         } catch (error) {
             console.error('Failed to load workout data', error);
         }
@@ -120,7 +137,12 @@ export default function WorkoutScreen() {
         };
 
         setStats(newStats);
-        await AsyncStorage.setItem(STATS_KEY, JSON.stringify(newStats));
+        try {
+            await api.post('/workouts/stats', newStats);
+        } catch (e) {
+            Alert.alert(t('common.error'), 'Failed to save stats');
+            console.error(e);
+        }
         setShowStatsModal(false);
     };
 
@@ -130,18 +152,36 @@ export default function WorkoutScreen() {
             return;
         }
 
+        const timestamp = Date.now();
+        const clientId = `${timestamp}-${Math.floor(Math.random() * 10000)}`;
+        const dateStr = dayjs().format('YYYY-MM-DD');
+
         const newActivity: Activity = {
-            id: Date.now().toString(),
+            id: clientId,
             name: activityName,
             duration: parseInt(durationInput) || 0,
             calories: parseInt(caloriesInput),
-            date: dayjs().format('YYYY-MM-DD'),
-            timestamp: Date.now()
+            date: dateStr,
+            timestamp: timestamp
         };
 
         const updatedActivities = [newActivity, ...activities];
         setActivities(updatedActivities);
-        await AsyncStorage.setItem(ACTIVITIES_KEY, JSON.stringify(updatedActivities));
+
+        try {
+            await api.post('/workouts/activities', {
+                client_id: clientId,
+                name: activityName,
+                duration: parseInt(durationInput) || 0,
+                calories: parseInt(caloriesInput),
+                date: dateStr,
+                timestamp: timestamp
+            });
+        } catch (e) {
+            Alert.alert(t('common.error'), 'Failed to save activity');
+            console.error(e);
+            // Revert logic here if needed, but keeping it simple for now
+        }
 
         // Reset & Close
         setActivityName('');
@@ -162,7 +202,11 @@ export default function WorkoutScreen() {
                     onPress: async () => {
                         const updated = activities.filter(a => a.id !== id);
                         setActivities(updated);
-                        await AsyncStorage.setItem(ACTIVITIES_KEY, JSON.stringify(updated));
+                        try {
+                            await api.delete(`/workouts/activities/${id}`);
+                        } catch (e) {
+                            console.error('Failed to delete activity', e);
+                        }
                     }
                 }
             ]

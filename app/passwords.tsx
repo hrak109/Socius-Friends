@@ -3,7 +3,7 @@ import { StyleSheet, View, Text, TouchableOpacity, SectionList, Modal, TextInput
 import { Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '../services/api';
 import * as Clipboard from 'expo-clipboard';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -43,9 +43,17 @@ export default function PasswordsScreen() {
 
     const loadAccounts = async () => {
         try {
-            const saved = await AsyncStorage.getItem(STORAGE_KEY);
-            if (saved) {
-                setAccounts(JSON.parse(saved));
+            const res = await api.get('/passwords');
+            if (Array.isArray(res.data)) {
+                const mapped = res.data.map((a: any) => ({
+                    id: a.client_id,
+                    service: a.service,
+                    username: a.username,
+                    password: a.password,
+                    group: a.group,
+                    updated_at: a.updated_at
+                }));
+                setAccounts(mapped);
             }
         } catch (error) {
             console.error('Failed to load passwords', error);
@@ -54,12 +62,19 @@ export default function PasswordsScreen() {
         }
     };
 
-    const saveAccounts = async (newAccounts: PasswordAccount[]) => {
+    // Helper to sync single account
+    const saveAccountApi = async (account: PasswordAccount) => {
         try {
-            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newAccounts));
-            setAccounts(newAccounts);
-        } catch (error) {
-            console.error('Failed to save passwords', error);
+            await api.post('/passwords', {
+                client_id: account.id,
+                service: account.service,
+                username: account.username,
+                password: account.password,
+                group: account.group,
+                updated_at: account.updated_at
+            });
+        } catch (e) {
+            console.error('Failed to save password', e);
             Alert.alert(t('common.error'), 'Failed to save');
         }
     };
@@ -79,10 +94,15 @@ export default function PasswordsScreen() {
                     ? { ...acc, service, username, password, group, updated_at: now }
                     : acc
             );
+            // Sync specific update
+            const acc = updatedAccounts.find(a => a.id === editingId);
+            if (acc) saveAccountApi(acc);
+
         } else {
             // Add new
+            const clientId = `${now}-${Math.floor(Math.random() * 10000)}`;
             const newAccount: PasswordAccount = {
-                id: now.toString(),
+                id: clientId,
                 service: service.trim(),
                 username: username.trim(),
                 password: password.trim(),
@@ -90,9 +110,10 @@ export default function PasswordsScreen() {
                 updated_at: now,
             };
             updatedAccounts.push(newAccount);
+            saveAccountApi(newAccount);
         }
 
-        saveAccounts(updatedAccounts);
+        setAccounts(updatedAccounts); // Optimistic UI update
         closeModal();
     };
 
@@ -105,9 +126,14 @@ export default function PasswordsScreen() {
                 {
                     text: t('passwords.delete'),
                     style: 'destructive',
-                    onPress: () => {
+                    onPress: async () => {
                         const updated = accounts.filter(a => a.id !== id);
-                        saveAccounts(updated);
+                        setAccounts(updated);
+                        try {
+                            await api.delete(`/passwords/${id}`);
+                        } catch (e) {
+                            console.error('Failed to delete password', e);
+                        }
                     }
                 }
             ]
