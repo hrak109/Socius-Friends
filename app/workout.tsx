@@ -11,6 +11,7 @@ import {
     KeyboardAvoidingView,
     Platform
 } from 'react-native';
+import { Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -21,12 +22,24 @@ import dayjs from 'dayjs';
 
 // --- Types ---
 
+type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
+
 interface PhysicalStats {
     weight: number; // kg
     height: number; // cm
     age: number;
     gender: 'male' | 'female';
+    activityLevel: ActivityLevel;
 }
+
+// Activity level multipliers (Harris-Benedict)
+const ACTIVITY_LEVELS: { key: ActivityLevel; multiplier: number; }[] = [
+    { key: 'sedentary', multiplier: 1.2 },      // Little or no exercise
+    { key: 'light', multiplier: 1.375 },        // Light exercise 1-3 days/week
+    { key: 'moderate', multiplier: 1.55 },      // Moderate exercise 3-5 days/week
+    { key: 'active', multiplier: 1.725 },       // Hard exercise 6-7 days/week
+    { key: 'very_active', multiplier: 1.9 },    // Very hard exercise, physical job
+];
 
 interface Activity {
     id: string;
@@ -57,6 +70,7 @@ export default function WorkoutScreen() {
     const [heightInput, setHeightInput] = useState('');
     const [ageInput, setAgeInput] = useState('');
     const [genderInput, setGenderInput] = useState<'male' | 'female'>('male');
+    const [activityLevelInput, setActivityLevelInput] = useState<ActivityLevel>('moderate');
 
     const [activityName, setActivityName] = useState('');
     const [durationInput, setDurationInput] = useState('');
@@ -74,7 +88,14 @@ export default function WorkoutScreen() {
             const savedActivities = await AsyncStorage.getItem(ACTIVITIES_KEY);
 
             if (savedStats) {
-                setStats(JSON.parse(savedStats));
+                const parsed = JSON.parse(savedStats);
+                setStats(parsed);
+                // Pre-fill form inputs for editing
+                setWeightInput(parsed.weight?.toString() || '');
+                setHeightInput(parsed.height?.toString() || '');
+                setAgeInput(parsed.age?.toString() || '');
+                setGenderInput(parsed.gender || 'male');
+                setActivityLevelInput(parsed.activityLevel || 'moderate');
             } else {
                 setShowStatsModal(true); // Prompt if no stats
             }
@@ -94,7 +115,8 @@ export default function WorkoutScreen() {
             weight: parseFloat(weightInput),
             height: parseFloat(heightInput),
             age: parseInt(ageInput),
-            gender: genderInput
+            gender: genderInput,
+            activityLevel: activityLevelInput
         };
 
         setStats(newStats);
@@ -159,6 +181,13 @@ export default function WorkoutScreen() {
         return Math.round(val);
     }, [stats]);
 
+    // TDEE = BMR × Activity Multiplier
+    const tdee = useMemo(() => {
+        if (!stats || !bmr) return 0;
+        const level = ACTIVITY_LEVELS.find(l => l.key === stats.activityLevel) || ACTIVITY_LEVELS[2]; // default moderate
+        return Math.round(bmr * level.multiplier);
+    }, [stats, bmr]);
+
     const todayActivities = useMemo(() => {
         const today = dayjs().format('YYYY-MM-DD');
         return activities.filter(a => a.date === today);
@@ -191,7 +220,7 @@ export default function WorkoutScreen() {
             <View style={styles.activityInfo}>
                 <Text style={[styles.activityName, { color: colors.text }]}>{item.name}</Text>
                 <Text style={[styles.activityTime, { color: colors.textSecondary }]}>
-                    {dayjs(item.timestamp).format('h:mm A')} • {item.duration > 0 ? `${item.duration} min` : ''}
+                    {dayjs(item.timestamp).format('h:mm A')} • {item.duration > 0 ? `${item.duration} ${t('workout.min')}` : ''}
                 </Text>
             </View>
             <Text style={[styles.activityCalories, { color: colors.primary }]}>
@@ -202,10 +231,32 @@ export default function WorkoutScreen() {
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
+            <Stack.Screen
+                options={{
+                    headerRight: () => (
+                        <TouchableOpacity onPress={() => setShowAddModal(true)} style={{ paddingRight: 8 }}>
+                            <Ionicons name="add-circle" size={28} color={colors.primary} />
+                        </TouchableOpacity>
+                    ),
+                }}
+            />
 
             <ScrollView contentContainerStyle={styles.scrollContent}>
-                {/* Visual Header */}
-                <View style={styles.headerStats}>
+                {/* Formula Info */}
+                {stats && (
+                    <View style={[styles.formulaCard, { backgroundColor: colors.card }]}>
+                        <Text style={[styles.formulaTitle, { color: colors.text }]}>📊 {t('workout.your_stats')}</Text>
+                        <Text style={[styles.formulaText, { color: colors.textSecondary }]}>
+                            BMR = 10×{stats.weight} + 6.25×{stats.height} - 5×{stats.age} {stats.gender === 'male' ? '+ 5' : '- 161'}
+                        </Text>
+                        <Text style={[styles.formulaText, { color: colors.textSecondary }]}>
+                            TDEE = {bmr} × {ACTIVITY_LEVELS.find(l => l.key === stats.activityLevel)?.multiplier || 1.55}
+                        </Text>
+                    </View>
+                )}
+
+                {/* Visual Header - Row 1: BMR & TDEE */}
+                <View style={styles.headerStatsRow}>
                     {/* BMR Card */}
                     <TouchableOpacity
                         style={[styles.statCard, { backgroundColor: colors.card }]}
@@ -215,22 +266,50 @@ export default function WorkoutScreen() {
                                 setHeightInput(stats.height.toString());
                                 setAgeInput(stats.age.toString());
                                 setGenderInput(stats.gender);
+                                setActivityLevelInput(stats.activityLevel || 'moderate');
                                 setShowStatsModal(true);
                             }
                         }}
                     >
                         <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('workout.bmr')}</Text>
                         <Text style={[styles.statValue, { color: colors.text }]}>{bmr}</Text>
-                        <Text style={[styles.statUnit, { color: colors.textSecondary }]}>kcal</Text>
+                        <Text style={[styles.statUnit, { color: colors.textSecondary }]}>kcal/{t('workout.day')}</Text>
                     </TouchableOpacity>
 
+                    {/* TDEE Card */}
+                    <TouchableOpacity
+                        style={[styles.statCard, { backgroundColor: colors.card }]}
+                        onPress={() => {
+                            if (stats) {
+                                setWeightInput(stats.weight.toString());
+                                setHeightInput(stats.height.toString());
+                                setAgeInput(stats.age.toString());
+                                setGenderInput(stats.gender);
+                                setActivityLevelInput(stats.activityLevel || 'moderate');
+                                setShowStatsModal(true);
+                            }
+                        }}
+                    >
+                        <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('workout.tdee')}</Text>
+                        <Text style={[styles.statValue, { color: '#34C759' }]}>{tdee}</Text>
+                        <Text style={[styles.statUnit, { color: colors.textSecondary }]}>kcal/{t('workout.day')}</Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* Visual Header - Row 2: Today Active & Daily Average */}
+                <View style={styles.headerStatsRow}>
                     {/* Active Card */}
                     <View style={[styles.statCard, { backgroundColor: colors.card }]}>
                         <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('workout.active_calories')}</Text>
                         <Text style={[styles.statValue, { color: '#FF3B30' }]}>{todayActiveCalories}</Text>
-                        <View style={styles.avgContainer}>
-                            <Text style={[styles.statUnit, { color: colors.textSecondary }]}>Avg: {dailyAverage}</Text>
-                        </View>
+                        <Text style={[styles.statUnit, { color: colors.textSecondary }]}>{t('common.today') || 'Today'}</Text>
+                    </View>
+
+                    {/* Average Card */}
+                    <View style={[styles.statCard, { backgroundColor: colors.card }]}>
+                        <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('workout.average')}</Text>
+                        <Text style={[styles.statValue, { color: colors.text }]}>{dailyAverage}</Text>
+                        <Text style={[styles.statUnit, { color: colors.textSecondary }]}>kcal/{t('workout.day')}</Text>
                     </View>
                 </View>
 
@@ -249,39 +328,48 @@ export default function WorkoutScreen() {
                         <View style={{ flex: todayActiveCalories > 0 ? todayActiveCalories : 0.1, backgroundColor: '#FF3B30', height: 8, borderTopRightRadius: 4, borderBottomRightRadius: 4 }} />
                     </View>
                     <View style={styles.barLabels}>
-                        <Text style={{ fontSize: 10, color: '#34C759' }}>Rest ({bmr})</Text>
-                        <Text style={{ fontSize: 10, color: '#FF3B30' }}>Active ({todayActiveCalories})</Text>
+                        <Text style={{ fontSize: 10, color: '#34C759' }}>{t('workout.rest')} ({bmr})</Text>
+                        <Text style={{ fontSize: 10, color: '#FF3B30' }}>{t('workout.active')} ({todayActiveCalories})</Text>
                     </View>
                 </View>
 
-                {/* Today's Activities List */}
+                {/* Activity History List */}
                 <View style={styles.listHeader}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('workout.todays_activity')}</Text>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('workout.history')}</Text>
                 </View>
 
-                {todayActivities.length === 0 ? (
+                {activities.length === 0 ? (
                     <View style={styles.emptyState}>
                         <Text style={{ color: colors.textSecondary }}>{t('workout.no_activities')}</Text>
                     </View>
                 ) : (
-                    todayActivities.map(item => (
-                        <View key={item.id} style={{ marginBottom: 8 }}>
-                            {renderActivityItem({ item })}
-                        </View>
-                    ))
+                    activities.map((item, index) => {
+                        const prevItem = activities[index - 1];
+                        const showDateHeader = !prevItem || prevItem.date !== item.date;
+                        const isToday = item.date === dayjs().format('YYYY-MM-DD');
+
+                        return (
+                            <View key={item.id}>
+                                {showDateHeader && (
+                                    <View style={[styles.dateHeader, { backgroundColor: isToday ? colors.primary + '20' : colors.card }]}>
+                                        <Text style={[styles.dateHeaderText, { color: isToday ? colors.primary : colors.textSecondary }]}>
+                                            {isToday ? (t('common.today') || 'Today') : item.date}
+                                        </Text>
+                                    </View>
+                                )}
+                                <View style={{ marginBottom: 8 }}>
+                                    {renderActivityItem({ item })}
+                                </View>
+                            </View>
+                        );
+                    })
                 )}
 
                 {/* Spacer for FAB */}
                 <View style={{ height: 80 }} />
             </ScrollView>
 
-            {/* FAB */}
-            <TouchableOpacity
-                style={[styles.fab, { backgroundColor: colors.primary }]}
-                onPress={() => setShowAddModal(true)}
-            >
-                <Ionicons name="add" size={32} color="#fff" />
-            </TouchableOpacity>
+
 
 
             {/* Stats Modal */}
@@ -364,6 +452,37 @@ export default function WorkoutScreen() {
                                     </View>
                                 </View>
 
+                                {/* Activity Level Selector */}
+                                <View style={styles.activityLevelContainer}>
+                                    <Text style={[styles.inputLabel, { color: colors.text }]}>{t('workout.activity_level')}</Text>
+                                    <View style={styles.activityLevelRow}>
+                                        {ACTIVITY_LEVELS.map(level => (
+                                            <TouchableOpacity
+                                                key={level.key}
+                                                style={[
+                                                    styles.activityLevelBtn,
+                                                    activityLevelInput === level.key && { backgroundColor: colors.primary, borderColor: colors.primary }
+                                                ]}
+                                                onPress={() => setActivityLevelInput(level.key)}
+                                            >
+                                                <Text style={{
+                                                    color: activityLevelInput === level.key ? '#fff' : colors.text,
+                                                    fontSize: 12,
+                                                    fontWeight: activityLevelInput === level.key ? '600' : '400'
+                                                }}>
+                                                    {t(`workout.activity_${level.key}`)}
+                                                </Text>
+                                                <Text style={{
+                                                    color: activityLevelInput === level.key ? 'rgba(255,255,255,0.7)' : colors.textSecondary,
+                                                    fontSize: 10
+                                                }}>
+                                                    ×{level.multiplier}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </View>
+
                                 <TouchableOpacity style={[styles.saveButton, { backgroundColor: colors.primary }]} onPress={saveStats}>
                                     <Text style={styles.saveButtonText}>{t('common.save')}</Text>
                                 </TouchableOpacity>
@@ -439,7 +558,9 @@ export default function WorkoutScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     scrollContent: { padding: 16 },
-    headerStats: { flexDirection: 'row', gap: 12, marginBottom: 12 },
+    headerStatsRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
+    dateHeader: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, marginBottom: 8, marginTop: 4 },
+    dateHeaderText: { fontSize: 14, fontWeight: '700' },
     statCard: { flex: 1, padding: 16, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
     statLabel: { fontSize: 12, marginBottom: 4 },
     statValue: { fontSize: 24, fontWeight: '800' },
@@ -473,4 +594,10 @@ const styles = StyleSheet.create({
     saveButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
     modalActions: { flexDirection: 'row', marginTop: 16, gap: 12 },
     cancelButton: { flex: 1, height: 50, alignItems: 'center', justifyContent: 'center' },
+    formulaCard: { padding: 16, borderRadius: 16, marginBottom: 12 },
+    formulaTitle: { fontSize: 14, fontWeight: '700', marginBottom: 8 },
+    formulaText: { fontSize: 12, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', marginBottom: 4 },
+    activityLevelContainer: { marginTop: 16 },
+    activityLevelRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
+    activityLevelBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: '#ddd' },
 });

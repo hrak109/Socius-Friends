@@ -66,13 +66,16 @@ const LANGUAGES = [
 
 export default function SociusSetupScreen() {
     const router = useRouter();
-    const { preselectedRole } = useLocalSearchParams<{ preselectedRole?: string }>();
+    const params = useLocalSearchParams<{ preselectedRole?: string, role?: string }>();
+    // Accept either 'role' or 'preselectedRole' param
+    const preselectedRole = params.preselectedRole || params.role;
+
     const { colors } = useTheme();
     const { t } = useLanguage();
     const { displayName } = useUserProfile();
 
     // If preselectedRole is provided, skip role step
-    const initialStep: Step = preselectedRole ? 'avatar' : 'role';
+    const initialStep: Step = preselectedRole ? (preselectedRole === 'multilingual' ? 'language' : 'avatar') : 'role';
     const [step, setStep] = useState<Step>(initialStep);
     const [state, setState] = useState<SetupState>({
         role: preselectedRole || '',

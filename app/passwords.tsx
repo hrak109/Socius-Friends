@@ -237,7 +237,14 @@ export default function PasswordsScreen() {
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
-            <Stack.Screen options={{ title: t('passwords.title') }} />
+            <Stack.Screen options={{
+                title: t('passwords.title'),
+                headerRight: () => (
+                    <TouchableOpacity onPress={() => openModal()} style={{ paddingRight: 8 }}>
+                        <Ionicons name="add-circle" size={28} color={colors.primary} />
+                    </TouchableOpacity>
+                ),
+            }} />
 
             {/* Search Bar */}
             <View style={[styles.searchContainer, { borderBottomColor: colors.border }]}>
@@ -281,13 +288,7 @@ export default function PasswordsScreen() {
                 />
             )}
 
-            {/* FAB */}
-            <TouchableOpacity
-                style={[styles.fab, { backgroundColor: colors.primary }]}
-                onPress={() => openModal()}
-            >
-                <Ionicons name="add" size={30} color="#fff" />
-            </TouchableOpacity>
+
 
             {/* Add/Edit Modal */}
             <Modal

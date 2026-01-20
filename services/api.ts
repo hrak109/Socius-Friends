@@ -7,6 +7,7 @@ const api = axios.create({
     headers: {
         'Content-Type': 'application/json',
     },
+    timeout: 300000, // 5 minutes
 });
 
 api.interceptors.request.use(
@@ -18,6 +19,42 @@ api.interceptors.request.use(
         return config;
     },
     (error) => {
+        return Promise.reject(error);
+    }
+);
+
+api.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        const originalRequest = error.config;
+
+        // Prevent infinite loops
+        if (error.response?.status === 401 && !originalRequest._retry) {
+            originalRequest._retry = true;
+
+            try {
+                const refreshToken = await SecureStore.getItemAsync('refresh_token');
+                if (refreshToken) {
+                    // Use a fresh axios instance to avoid interceptors
+                    const response = await axios.post(`${API_URL}/auth/refresh`, { refresh_token: refreshToken });
+
+                    const { access_token, refresh_token: newRefreshToken } = response.data;
+
+                    await SecureStore.setItemAsync('session_token', access_token);
+                    if (newRefreshToken) {
+                        await SecureStore.setItemAsync('refresh_token', newRefreshToken);
+                    }
+
+                    api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+                    originalRequest.headers['Authorization'] = `Bearer ${access_token}`;
+
+                    return api(originalRequest);
+                }
+            } catch (refreshError) {
+                console.log('Refresh token failed', refreshError);
+                // Fall through to return original error (which triggers logout)
+            }
+        }
         return Promise.reject(error);
     }
 );

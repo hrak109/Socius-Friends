@@ -26,15 +26,15 @@ import { getCachedThreads, cacheThreads, CachedThread } from '../services/ChatCa
 const APPS_ORDER_KEY = 'user_apps_order_v1';
 
 const DEFAULT_APPS = [
-    { id: 'socius', label: 'friends.socius_friend', icon: 'sparkles', color: '#007AFF', route: '/socius-friends' },
-    { id: 'friends', label: 'friends.title', icon: 'people', color: '#5AC8FA', route: '/friends' },
+    { id: 'socius', label: 'friends.socius_friend', icon: 'sparkles', color: '#ffc320ff', route: '/socius-friends' },
+    { id: 'friends', label: 'friends.user_friend', icon: 'people', color: '#007AFF', route: '/friends' },
     { id: 'bible', label: 'bible.title', icon: 'book', color: '#8D6E63', route: '/bible' },
     { id: 'calories', label: 'calories.title', icon: 'nutrition', color: '#34C759', route: '/calories' },
     { id: 'passwords', label: 'passwords.title', icon: 'key', color: '#5856D6', route: '/passwords' },
     { id: 'notes', label: 'notes.title', icon: 'document-text', color: '#FF9500', route: '/notes' },
     { id: 'diary', label: 'diary.title', icon: 'journal', color: '#FF2D55', route: '/diary' },
     { id: 'workout', label: 'workout.title', icon: 'fitness', color: '#FF3B30', route: '/workout' },
-    { id: 'languages', label: 'languages.title', icon: 'globe', color: '#C7C7CC', route: '/languages' },
+    { id: 'languages', label: 'languages.title', icon: 'globe', color: '#BDB2FF', route: '/languages' },
 ];
 
 interface ChatThread {
@@ -103,16 +103,34 @@ export default function MessagesScreen() {
                     onLongPress={drag}
                     disabled={isActive}
                 >
-                    <View style={[
-                        styles.appIcon,
-                        {
-                            backgroundColor: item.color,
-                            shadowColor: item.color,
-                            shadowOpacity: 0.25
-                        }
-                    ]}>
-                        <Ionicons name={item.icon as any} size={24} color="#fff" />
-                    </View>
+                    {item.id === 'socius' ? (
+                        <View style={[
+                            styles.appIcon,
+                            {
+                                backgroundColor: 'transparent',
+                                shadowColor: item.color,
+                                shadowOpacity: 0.25,
+                                overflow: 'hidden'
+                            }
+                        ]}>
+                            <Image
+                                source={require('../assets/images/socius-rainbow.png')}
+                                style={{ width: 48, height: 48, position: 'absolute' }}
+                            />
+                            <Ionicons name={item.icon as any} size={24} color="#fff" />
+                        </View>
+                    ) : (
+                        <View style={[
+                            styles.appIcon,
+                            {
+                                backgroundColor: item.color,
+                                shadowColor: item.color,
+                                shadowOpacity: 0.25
+                            }
+                        ]}>
+                            <Ionicons name={item.icon as any} size={24} color="#fff" />
+                        </View>
+                    )}
                     <Text style={[styles.appLabel, { color: colors.text }]}>{t(item.label)}</Text>
                 </TouchableOpacity>
             </ScaleDecorator>
@@ -331,7 +349,8 @@ export default function MessagesScreen() {
                                         if (role.includes('calorie') || role.includes('nutrition') || role.includes('diet') || role.includes('tracker')) return '#34C759';
                                         if (role.includes('note')) return '#FF9500';
                                         if (role.includes('password') || role.includes('secret')) return '#5856D6';
-                                        if (role.includes('multilingual') || role.includes('language')) return '#C7C7CC';
+                                        if (role.includes('multilingual') || role.includes('language')) return '#BDB2FF';
+                                        if (role.includes('casual') || role.includes('romantic') || role.includes('assistant')) return '#ffc320ff';
                                         return '#007AFF'; // Default Socius Blue
                                     })()
                                 }
@@ -350,7 +369,7 @@ export default function MessagesScreen() {
                             </View>
                         )}
                         {item.type === 'user' && (
-                            <View style={[styles.aiTag, { backgroundColor: '#5AC8FA' }]}>
+                            <View style={[styles.aiTag, { backgroundColor: '#007AFF' }]}>
                                 <Text style={styles.aiTagText}>
                                     {t('friends.user_friend') || 'User. Friend.'}
                                 </Text>

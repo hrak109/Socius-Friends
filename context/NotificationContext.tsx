@@ -38,7 +38,7 @@ const NotificationContext = createContext<NotificationContextType>({
 export const useNotifications = () => useContext(NotificationContext);
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-    const { session } = useSession();
+    const { session, signOut } = useSession();
     const [unreadCount, setUnreadCount] = useState(0);
     const [sociusUnreadCount, setSociusUnreadCount] = useState(0);
     const [unreadDirectMessages, setUnreadDirectMessages] = useState(0);
@@ -47,6 +47,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     const [lastMessage, setLastMessage] = useState<{ id: number; context: string; content: string; timestamp: number } | null>(null);
     const [lastDM, setLastDM] = useState<{ id: number; senderId: number; content: string; timestamp: number } | null>(null);
     const [typingThreads, setTypingThreads] = useState<Set<string>>(new Set());
+    const typingTimeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
     const sseCleanupRef = useRef<(() => void) | null>(null);
     const segmentsRef = useRef<string[]>([]);
 
@@ -55,10 +56,27 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const setTyping = useCallback((id: string, isTyping: boolean) => {
+        // Clear any existing timeout for this id
+        const existingTimeout = typingTimeoutsRef.current.get(id);
+        if (existingTimeout) {
+            clearTimeout(existingTimeout);
+            typingTimeoutsRef.current.delete(id);
+        }
+
         setTypingThreads(prev => {
             const newSet = new Set(prev);
             if (isTyping) {
                 newSet.add(id);
+                // Set 20-minute auto-clear timeout
+                const timeout = setTimeout(() => {
+                    setTypingThreads(p => {
+                        const s = new Set(p);
+                        s.delete(id);
+                        return s;
+                    });
+                    typingTimeoutsRef.current.delete(id);
+                }, 20 * 60 * 1000); // 20 minutes
+                typingTimeoutsRef.current.set(id, timeout);
             } else {
                 newSet.delete(id);
             }
@@ -80,10 +98,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             setUnreadDirectMessages(messages);
             setFriendRequests(friends);
             await Notifications.setBadgeCountAsync(total);
-        } catch {
+        } catch (error: any) {
             console.log('Failed to fetch notifications');
+            if (error.response?.status === 401) {
+                console.log('Session expired (API 401), signing out...');
+                signOut();
+            }
         }
-    }, [session]);
+    }, [session, signOut]);
 
     const registerForPushNotifications = useCallback(async () => {
         if (Platform.OS === 'android') {
@@ -185,11 +207,15 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
                             });
                             refreshNotifications();
                         } else if (event.type === 'dm') {
-                            // New direct message arrived
+                            // New direct message arrived - clear typing for sender
+                            const senderId = event.data?.sender_id;
+                            if (senderId) {
+                                setTyping(`user-${senderId}`, false);
+                            }
                             setLastNotificationTime(new Date());
                             setLastDM({
                                 id: event.data?.id || Date.now(),
-                                senderId: event.data?.sender_id || 0,
+                                senderId: senderId || 0,
                                 content: event.data?.content || '',
                                 timestamp: Date.now()
                             });
@@ -198,8 +224,26 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
                             console.log('SSE connected:', event.timestamp);
                         }
                     },
-                    (error) => {
-                        console.error('SSE error, will attempt reconnect:', error);
+                    (error: any) => {
+                        const errorMsg = error?.message || String(error);
+                        const xhrStatus = error?.xhrStatus;
+
+                        // Check for 401 Unauthorized
+                        if (xhrStatus === 401 || errorMsg.includes('401')) {
+                            console.log('Session expired (SSE 401), signing out...');
+                            signOut();
+                            return; // Stop reconnection
+                        }
+
+                        const isConnectionAbort = errorMsg.includes('Software caused connection abort') ||
+                            errorMsg.includes('Network request failed') ||
+                            errorMsg.includes('closed');
+
+                        if (isConnectionAbort) {
+                            console.log('SSE connection closed (normal behavior), reconnecting...');
+                        } else {
+                            console.error('SSE error, will attempt reconnect:', error);
+                        }
                         // Attempt to reconnect after 5 seconds
                         setTimeout(setupSSE, 5000);
                     }

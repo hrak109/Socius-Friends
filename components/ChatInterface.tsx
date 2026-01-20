@@ -8,6 +8,8 @@ import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import TypingIndicator from './TypingIndicator';
 import CalorieWidget from './CalorieWidget';
+import WorkoutWidget from './WorkoutWidget';
+import PasswordWidget from './PasswordWidget';
 import { PROFILE_AVATAR_MAP, SOCIUS_AVATAR_MAP } from '../constants/avatars';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -61,9 +63,10 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
     const [isWaitingForResponse, setIsWaitingForResponse] = useState(false); // NEW: Disable input state
     const responseTimeoutRef = useRef<any>(null);
     const selectedModel = 'soc-model';
-    const { refreshNotifications, lastMessage, lastNotificationTime, setTyping, typingThreads } = useNotifications();
+    const { refreshNotifications, lastMessage, lastDM, lastNotificationTime, setTyping, typingThreads } = useNotifications();
     const textInputRef = useRef<any>(null);
     const processedMessageIds = useRef<Set<number>>(new Set());
+    const lastUserMessageTime = useRef<number>(0); // NEW: Track when we last sent a message
 
     // UI Layout State
     const [isKeyboardVisible, setKeyboardVisible] = useState(false);
@@ -122,6 +125,17 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
             if (responseTimeoutRef.current) clearTimeout(responseTimeoutRef.current);
         }
     }, [lastMessage, lastMessage?.timestamp, lastMessage?.id, lastMessage?.context, lastMessage?.content, context, threadId, botUser, setTyping]);
+
+    // Listen for DM responses to clear typing indicator
+    useEffect(() => {
+        if (!friendId || !lastDM) return;
+
+        // Check if DM is from the friend we're chatting with
+        if (lastDM.senderId === friendId) {
+            // Clear typing for this friend
+            setTyping(`user-${friendId}`, false);
+        }
+    }, [lastDM, lastDM?.timestamp, friendId, setTyping]);
 
     useEffect(() => {
         if (initialMessage) {
@@ -225,8 +239,15 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
                         setMessages(reversedMessages);
 
                         // Clear typing indicator if we received bot messages
-                        const hasBotMessages = reversedMessages.some(m => m.user._id !== 1);
-                        if (hasBotMessages && !friendId) {
+                        // Clear typing indicator if the LATEST message is from bot
+                        const latestMsg = reversedMessages[0];
+                        const isLatestFromBot = latestMsg && latestMsg.user._id !== 1;
+
+                        // ONLY clear if the bot message is NEWER than our last sent message
+                        // This prevents race conditions where history fetch returns old bot messages
+                        const isNewResponse = latestMsg && (new Date(latestMsg.createdAt).getTime() > lastUserMessageTime.current);
+
+                        if (isLatestFromBot && isNewResponse && !friendId) {
                             setIsTyping(false);
                             setIsWaitingForResponse(false);
                             setTyping(threadId, false);
@@ -264,16 +285,23 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
     );
 
     const handleSendQuestion = useCallback(async (text: string) => {
+        const TYPING_TIMEOUT = 20 * 60 * 1000; // 20 minutes
+
         if (friendId) {
             // User-to-user DM: POST to /messages
+            const dmThreadId = `user-${friendId}`;
+            setTyping(dmThreadId, true); // Show typing for DM recipient
+
             try {
                 await api.post('/messages', {
                     receiver_id: friendId,
                     content: text
                 });
-                // DMs don't need typing indicator or wait for AI response
+                // DM sent - typing will be cleared when we receive SSE confirmation
+                // or by the 20-min timeout in NotificationContext
             } catch (error) {
                 console.error('Error sending DM:', error);
+                setTyping(dmThreadId, false); // Clear on error
             }
         } else {
             // Socius AI chat: POST to /ask
@@ -283,13 +311,13 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
             const currentThreadId = companionId ? `socius-${companionId}` : context;
             setTyping(currentThreadId, true);
 
-            // Set 30s timeout to re-enable (fallback if SSE fails)
+            // Set 20 min timeout to re-enable (fallback if SSE fails)
             if (responseTimeoutRef.current) clearTimeout(responseTimeoutRef.current);
             responseTimeoutRef.current = setTimeout(() => {
                 setIsTyping(false);
                 setIsWaitingForResponse(false);
                 setTyping(currentThreadId, false);
-            }, 30000);
+            }, TYPING_TIMEOUT);
 
             try {
                 await api.post('/ask', {
@@ -312,6 +340,7 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
     const onSend = useCallback((newMessages: IMessage[] = []) => {
         setMessages((previousMessages) => GiftedChat.append(previousMessages, newMessages));
         const messageText = newMessages[0].text;
+        lastUserMessageTime.current = Date.now(); // Track send time
         handleSendQuestion(messageText);
         setText('');
     }, [handleSendQuestion]);
@@ -357,6 +386,31 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
                             <CalorieWidget
                                 food={foodName}
                                 options={data.options || []}
+                                messageId={currentMessage._id}
+                            />
+                        </View>
+                    );
+                } else if (data.type === 'workout_event') {
+                    // Try multiple possible keys for exercise name (LLMs may vary)
+                    const exerciseName = data.exercise || data.name || data.activity || data.workout || 'Workout';
+
+                    widget = (
+                        <View style={{ padding: 5, width: 250, marginTop: 10 }}>
+                            <WorkoutWidget
+                                exercise={exerciseName}
+                                duration={data.duration}
+                                options={data.options || []}
+                                messageId={currentMessage._id}
+                            />
+                        </View>
+                    );
+                } else if (data.type === 'password_event') {
+                    widget = (
+                        <View style={{ padding: 5, width: 280, marginTop: 10 }}>
+                            <PasswordWidget
+                                service={data.service || ''}
+                                username={data.username || ''}
+                                password={data.password || ''}
                                 messageId={currentMessage._id}
                             />
                         </View>

@@ -39,7 +39,8 @@ export async function createNotificationStream(
         return () => { };
     }
 
-    const streamUrl = `${API_URL}/notifications/stream`;
+    // Pass token in query param as fallback for SSE/EventSource which can have issues with headers
+    const streamUrl = `${API_URL}/notifications/stream?token=${encodeURIComponent(token)}`;
 
     eventSource = new EventSource(streamUrl, {
         headers: {
@@ -57,7 +58,16 @@ export async function createNotificationStream(
     });
 
     eventSource.addEventListener('error', (error: any) => {
-        console.error('SSE connection error:', error);
+        const errorMsg = error?.message || String(error);
+        const isConnectionAbort = errorMsg.includes('Software caused connection abort') ||
+            errorMsg.includes('Network request failed') ||
+            errorMsg.includes('closed');
+
+        if (isConnectionAbort) {
+            console.log('SSE connection closed (normal behavior)');
+        } else {
+            console.error('SSE connection error:', error);
+        }
         if (onError) {
             onError(error);
         }

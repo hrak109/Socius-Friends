@@ -173,7 +173,14 @@ export default function NotesScreen() {
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom', 'left', 'right']}>
-            <Stack.Screen options={{ title: t('notes.title') }} />
+            <Stack.Screen options={{
+                title: t('notes.title'),
+                headerRight: () => (
+                    <TouchableOpacity onPress={() => setModalVisible(true)} style={{ paddingRight: 8 }}>
+                        <Ionicons name="add-circle" size={28} color={colors.primary} />
+                    </TouchableOpacity>
+                ),
+            }} />
 
 
             <View style={[styles.searchContainer, { marginHorizontal: 16, marginTop: 10, marginBottom: 10, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
@@ -218,12 +225,7 @@ export default function NotesScreen() {
                 )
             }
 
-            <TouchableOpacity
-                style={[styles.fab, { backgroundColor: colors.primary, shadowColor: colors.primary }]}
-                onPress={() => setModalVisible(true)}
-            >
-                <Ionicons name="add" size={30} color="#fff" />
-            </TouchableOpacity>
+
 
             {/* Edit/Create Modal */}
             <Modal

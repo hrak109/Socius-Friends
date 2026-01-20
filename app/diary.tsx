@@ -224,7 +224,14 @@ export default function DiaryScreen() {
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-            <Stack.Screen options={{ title: t('diary.title') }} />
+            <Stack.Screen options={{
+                title: t('diary.title'),
+                headerRight: () => (
+                    <TouchableOpacity onPress={() => setModalVisible(true)} style={{ paddingRight: 8 }}>
+                        <Ionicons name="add-circle" size={28} color={colors.primary} />
+                    </TouchableOpacity>
+                ),
+            }} />
 
             {isLoading ? (
                 <View style={styles.center}>
@@ -246,12 +253,7 @@ export default function DiaryScreen() {
                 />
             )}
 
-            <TouchableOpacity
-                style={[styles.fab, { backgroundColor: colors.primary, shadowColor: colors.primary }]}
-                onPress={() => setModalVisible(true)}
-            >
-                <Ionicons name="pencil" size={26} color="#fff" />
-            </TouchableOpacity>
+
 
             {/* Modal - Same minimal style as Notes */}
             <Modal
