@@ -31,10 +31,10 @@ interface BibleData {
 }
 
 const BIBLE_VERSIONS: { id: string; name: string; data: BibleData }[] = [
-    { id: 'KRV', name: 'Korean Revised (KRV)', data: KRV as unknown as BibleData },
-    { id: 'NIV', name: 'New International (NIV)', data: NIV as unknown as BibleData },
-    { id: 'GAE', name: 'Gaeyeok (GAE)', data: GAEYEOK as unknown as BibleData },
-    { id: 'SAE', name: 'Saebunyeok (SAE)', data: SAEBUNYEOK as unknown as BibleData },
+    { id: 'KRV', name: 'Korean Revised', data: KRV as unknown as BibleData },
+    { id: 'NIV', name: 'New International', data: NIV as unknown as BibleData },
+    { id: 'GAE', name: 'Gaeyeok', data: GAEYEOK as unknown as BibleData },
+    { id: 'SAE', name: 'Saebunyeok', data: SAEBUNYEOK as unknown as BibleData },
 ];
 
 export default function BibleScreen() {
