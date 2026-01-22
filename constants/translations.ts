@@ -17,6 +17,8 @@ export const translations = {
             cancelled: 'Cancelled',
             add: 'Add',
             chat: 'Chat',
+            delete: 'Delete',
+            delete_confirm: 'Confirm Delete?'
         },
         login: {
             subtitle: 'Chat with friends and AI companions',
@@ -188,7 +190,13 @@ export const translations = {
                 NIV: 'New International',
                 GAE: 'Gaeyeok',
                 SAE: 'Saebunyeok',
-            }
+            },
+            bookmarks: 'Bookmarks',
+            bookmark_added: 'Bookmark Added',
+            bookmark_removed: 'Bookmark Removed',
+            no_bookmarks: 'No Bookmarks',
+            settings: 'Settings',
+            version: 'Version',
         },
 
         workout: {
@@ -393,6 +401,8 @@ export const translations = {
             cancelled: '취소됨',
             add: '추가',
             chat: '대화',
+            delete: '삭제',
+            delete_confirm: '정말로 삭제 하시겠습니까?',
         },
         login: {
             subtitle: '친구 및 AI 동반자와 채팅하세요',
@@ -560,7 +570,13 @@ export const translations = {
                 NIV: 'NIV',
                 GAE: '개역개정',
                 SAE: '새번역',
-            }
+            },
+            bookmarks: '북마크',
+            bookmark_added: '북마크 추가됨',
+            bookmark_removed: '북마크 삭제됨',
+            no_bookmarks: '북마크가 없습니다',
+            settings: '설정',
+            version: '버전',
         },
 
         workout: {

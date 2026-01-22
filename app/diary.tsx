@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, FlatList, TextInput, ActivityIndicator, Modal, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, FlatList, TextInput, ActivityIndicator, Modal, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { useTheme } from '../context/ThemeContext';
@@ -185,6 +185,7 @@ export default function DiaryScreen() {
                                     autoFocus
                                 />
                                 <View style={styles.editActions}>
+
                                     <TouchableOpacity onPress={cancelEditing} disabled={isSavingEdit}>
                                         <Text style={[styles.editText, { color: colors.textSecondary }]}>{t('common.cancel')}</Text>
                                     </TouchableOpacity>
@@ -196,7 +197,32 @@ export default function DiaryScreen() {
                                 </View>
                             </View>
                         ) : (
-                            <TouchableOpacity activeOpacity={0.8} onPress={() => toggleExpand(item.id)}>
+                            <TouchableOpacity
+                                activeOpacity={0.8}
+                                onPress={() => startEditing(item)}
+                                onLongPress={() => {
+                                    Alert.alert(
+                                        t('common.delete'),
+                                        t('common.delete_confirm'),
+                                        [
+                                            { text: t('common.cancel'), style: 'cancel' },
+                                            {
+                                                text: t('common.delete'),
+                                                style: 'destructive',
+                                                onPress: async () => {
+                                                    try {
+                                                        await api.delete(`/diary/${item.id}`);
+                                                        setEntries(entries.filter(e => e.id !== item.id));
+                                                    } catch (error) {
+                                                        console.error('Failed to delete diary entry:', error);
+                                                        Alert.alert(t('common.error'), t('common.delete_failed') || 'Failed to delete');
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    );
+                                }}
+                            >
                                 <View style={styles.cardHeader}>
                                     {item.title ? (
                                         <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
@@ -205,11 +231,9 @@ export default function DiaryScreen() {
                                     ) : (
                                         <View style={{ flex: 1 }} />
                                     )}
-                                    <TouchableOpacity onPress={() => startEditing(item)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                                        <Ionicons name="create-outline" size={18} color={colors.textSecondary} />
-                                    </TouchableOpacity>
+                                    <Ionicons name="create-outline" size={18} color={colors.textSecondary} />
                                 </View>
-                                <Text style={[styles.cardContent, { color: colors.textSecondary }]} numberOfLines={isExpanded ? undefined : 4}>
+                                <Text style={[styles.cardContent, { color: colors.textSecondary }]} numberOfLines={4}>
                                     {item.content}
                                 </Text>
                                 <Text style={[styles.cardTime, { color: colors.textSecondary }]}>
@@ -219,7 +243,7 @@ export default function DiaryScreen() {
                         )}
                     </View>
                 </View>
-            </View>
+            </View >
         );
     };
 

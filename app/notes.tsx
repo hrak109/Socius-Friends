@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, TextInput, ActivityIndicator, Modal, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, TextInput, ActivityIndicator, Modal, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { useTheme } from '../context/ThemeContext';
@@ -154,6 +154,29 @@ export default function NotesScreen() {
             key={item.id}
             activeOpacity={0.9}
             onPress={() => startEditing(item)}
+            onLongPress={() => {
+                Alert.alert(
+                    t('common.delete'),
+                    t('common.delete_confirm'),
+                    [
+                        { text: t('common.cancel'), style: 'cancel' },
+                        {
+                            text: t('common.delete'),
+                            style: 'destructive',
+                            onPress: async () => {
+                                try {
+                                    await api.delete(`/notes/${item.id}`);
+                                    setEntries(entries.filter(e => e.id !== item.id));
+                                    setFilteredEntries(filteredEntries.filter(e => e.id !== item.id));
+                                } catch (error) {
+                                    console.error('Failed to delete note:', error);
+                                    Alert.alert(t('common.error'), t('common.delete_failed') || 'Failed to delete');
+                                }
+                            }
+                        }
+                    ]
+                );
+            }}
             style={[styles.noteCard, { backgroundColor: colors.card, shadowColor: isDark ? '#000' : '#888' }]}
         >
             <Text style={[styles.noteTitle, { color: colors.text }]} numberOfLines={2}>
@@ -248,7 +271,7 @@ export default function NotesScreen() {
                                 <Text style={[styles.modalCancel, { color: colors.textSecondary }]}>{t('common.cancel')}</Text>
                             </TouchableOpacity>
                             <Text style={[styles.modalTitleText, { color: colors.text }]}>
-                                {editingId ? (isAutosaving ? t('common.saving') || 'Saving...' : t('notes.edit_entry')) : t('notes.new_entry')}
+                                {editingId ? (isAutosaving ? t('common.saving') : t('notes.edit_entry')) : t('notes.new_entry')}
                             </Text>
                             <TouchableOpacity
                                 onPress={editingId ? () => saveEdit(editingId, false) : handleSaveEntry}
@@ -276,6 +299,7 @@ export default function NotesScreen() {
                                 multiline
                                 textAlignVertical="top"
                             />
+
                         </ScrollView>
                     </SafeAreaView>
                 </KeyboardAvoidingView>

@@ -61,15 +61,28 @@ export default function BibleScreen() {
     const [isSearchVisible, setIsSearchVisible] = useState(false);
     const [highlights, setHighlights] = useState<any[]>([]);
     const [isActionModalVisible, setIsActionModalVisible] = useState(false);
-    const [isVersionPickerVisible, setIsVersionPickerVisible] = useState(false);
+    // const [isVersionPickerVisible, setIsVersionPickerVisible] = useState(false); // Refactored into Settings
     const [isNavVisible, setIsNavVisible] = useState(false);
     const [navMode, setNavMode] = useState<'book' | 'chapter'>('book');
-    const [isZoomControlsVisible, setIsZoomControlsVisible] = useState(false);
+    // const [isZoomControlsVisible, setIsZoomControlsVisible] = useState(false); // Refactored into Settings
+    const [isSettingsVisible, setIsSettingsVisible] = useState(false);
     const [christianFriend, setChristianFriend] = useState<any>(null);
 
     // Reanimated
     const zoomIndicatorOpacity = useSharedValue(0);
     const animatedFontSize = useSharedValue(18);
+
+    // Bookmarks
+    type Bookmark = {
+        id: string;
+        version: string;
+        bookIndex: number;
+        chapterIndex: number; // 0-based
+        createdAt: string;
+        label?: string;
+    };
+    const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+    const [isBookmarksVisible, setIsBookmarksVisible] = useState(false);
 
     // Convert state to shared value on load
     useEffect(() => {
@@ -84,8 +97,8 @@ export default function BibleScreen() {
         const currentScrollY = event.nativeEvent.contentOffset.y;
         const diff = currentScrollY - lastScrollY.current;
 
-        if (suggestions.length > 0 || isVersionPickerVisible) {
-            // Keep header visible when suggestions are shown or version picker is open
+        if (suggestions.length > 0 || isSettingsVisible) {
+            // Keep header visible when suggestions are shown or settings is open
             Animated.timing(headerTranslateY, {
                 toValue: 0,
                 duration: 200,
@@ -359,42 +372,99 @@ export default function BibleScreen() {
 
 
 
-    const renderZoomControls = () => (
+    const renderSettingsModal = () => (
         <Modal
-            animationType="fade"
-            transparent={true}
-            visible={isZoomControlsVisible}
-            onRequestClose={() => setIsZoomControlsVisible(false)}
+            animationType="slide"
+            presentationStyle="pageSheet"
+            visible={isSettingsVisible}
+            onRequestClose={() => setIsSettingsVisible(false)}
         >
-            <TouchableOpacity
-                style={styles.modalOverlay}
-                activeOpacity={1}
-                onPress={() => setIsZoomControlsVisible(false)}
-            >
-                <View style={[styles.zoomControlsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                    <Text style={[styles.zoomTitle, { color: colors.text }]}>{t('bible.text_size') || 'Text Size'}</Text>
-
-                    <View style={styles.zoomRow}>
-                        <TouchableOpacity
-                            style={[styles.zoomBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
-                            onPress={() => handleZoom(-2)}
-                        >
-                            <Ionicons name="remove" size={24} color={colors.text} />
-                        </TouchableOpacity>
-
-                        <Text style={[styles.zoomValue, { color: colors.text }]}>
-                            {Math.round(baseFontSize)}
-                        </Text>
-
-                        <TouchableOpacity
-                            style={[styles.zoomBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
-                            onPress={() => handleZoom(2)}
-                        >
-                            <Ionicons name="add" size={24} color={colors.text} />
-                        </TouchableOpacity>
-                    </View>
+            <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+                <View style={styles.modalHeaderBar}>
+                    <Text style={[styles.modalTitleText, { color: colors.text, fontSize: 20 }]}>{t('bible.settings') || 'Settings'}</Text>
+                    <TouchableOpacity onPress={() => setIsSettingsVisible(false)}>
+                        <Text style={[styles.modalCancel, { color: colors.primary }]}>{t('common.close')}</Text>
+                    </TouchableOpacity>
                 </View>
-            </TouchableOpacity>
+
+                <ScrollView contentContainerStyle={{ padding: 20 }}>
+                    {/* Text Size Section */}
+                    <View style={[styles.settingsSection, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                        <Text style={[styles.settingsSectionTitle, { color: colors.textSecondary }]}>{t('bible.text_size') || 'Text Size'}</Text>
+                        <View style={styles.zoomRow}>
+                            <TouchableOpacity
+                                style={[styles.zoomBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+                                onPress={() => handleZoom(-2)}
+                            >
+                                <Ionicons name="remove" size={24} color={colors.text} />
+                            </TouchableOpacity>
+
+                            <Text style={[styles.zoomValue, { color: colors.text }]}>
+                                {Math.round(baseFontSize)}
+                            </Text>
+
+                            <TouchableOpacity
+                                style={[styles.zoomBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+                                onPress={() => handleZoom(2)}
+                            >
+                                <Ionicons name="add" size={24} color={colors.text} />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    {/* Bookmarks Link */}
+                    <TouchableOpacity
+                        style={[styles.settingsLinkItem, { backgroundColor: colors.card, borderColor: colors.border }]}
+                        onPress={() => {
+                            setIsSettingsVisible(false);
+                            setTimeout(() => setIsBookmarksVisible(true), 300);
+                        }}
+                    >
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <Ionicons name="bookmark" size={22} color={colors.primary} style={{ marginRight: 12 }} />
+                            <Text style={[styles.settingsLinkText, { color: colors.text }]}>{t('bible.bookmarks')}</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+                    </TouchableOpacity>
+
+                    {/* Versions Section */}
+                    <Text style={[styles.settingsHeader, { color: colors.textSecondary, marginTop: 24, marginBottom: 8 }]}>{t('bible.version') || 'Version'}</Text>
+                    <View style={[styles.settingsSection, { backgroundColor: colors.card, borderColor: colors.border, paddingVertical: 0 }]}>
+                        {BIBLE_VERSIONS.map((v, index) => (
+                            <TouchableOpacity
+                                key={v.id}
+                                style={[
+                                    styles.pickerItem,
+                                    {
+                                        borderBottomColor: colors.border,
+                                        backgroundColor: selectedVersion === v.id
+                                            ? (isDark ? 'rgba(255,255,255,0.05)' : colors.primary + '08')
+                                            : 'transparent',
+                                    },
+                                    index === BIBLE_VERSIONS.length - 1 && { borderBottomWidth: 0 }
+                                ]}
+                                onPress={() => {
+                                    setSelectedVersion(v.id);
+                                }}
+                            >
+                                <View style={styles.pickerItemContent}>
+                                    <Text style={[
+                                        styles.pickerItemText,
+                                        { color: colors.text },
+                                        selectedVersion === v.id && { color: colors.primary, fontWeight: '600' }
+                                    ]}>
+                                        {t(`bible.versions.${v.id}`) || v.name}
+                                    </Text>
+                                    {selectedVersion === v.id && (
+                                        <Ionicons name="checkmark" size={20} color={colors.primary} />
+                                    )}
+                                </View>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+
+                </ScrollView>
+            </SafeAreaView>
         </Modal>
     );
 
@@ -434,6 +504,7 @@ export default function BibleScreen() {
         setSelectedVerse(null);
     };
 
+    // ... (existing handleCopy)
     const handleCopy = async () => {
         if (selectedVerse === null || !currentChapter[selectedVerse]) return;
         const text = `${currentBook?.name} ${selectedChapterIndex + 1}:${selectedVerse + 1} - ${currentChapter[selectedVerse]}`;
@@ -442,6 +513,120 @@ export default function BibleScreen() {
         setSelectedVerse(null);
         Alert.alert(t('common.success'), t('bible.copy_success') || 'Copied to clipboard');
     };
+
+    const loadBookmarks = async () => {
+        try {
+            const saved = await AsyncStorage.getItem('bible_bookmarks');
+            if (saved) {
+                setBookmarks(JSON.parse(saved));
+            }
+        } catch (error) {
+            console.error('Failed to load bookmarks', error);
+        }
+    };
+
+    const saveBookmarks = async (newBookmarks: Bookmark[]) => {
+        try {
+            await AsyncStorage.setItem('bible_bookmarks', JSON.stringify(newBookmarks));
+        } catch (error) {
+            console.error('Failed to save bookmarks', error);
+        }
+    };
+
+    useEffect(() => {
+        loadBookmarks();
+    }, []);
+
+    const togglePageBookmark = async () => {
+        // Bookmark current page (book + chapter)
+        const existingIndex = bookmarks.findIndex(b =>
+            b.bookIndex === selectedBookIndex &&
+            b.chapterIndex === selectedChapterIndex &&
+            b.version === selectedVersion
+        );
+
+        let newBookmarks;
+        if (existingIndex >= 0) {
+            // Remove
+            newBookmarks = bookmarks.filter((_, i) => i !== existingIndex);
+            // Alert.alert(t('common.success'), t('bible.bookmark_removed') || 'Bookmark Removed');
+        } else {
+            // Add
+            const newBookmark: Bookmark = {
+                id: Date.now().toString(),
+                version: selectedVersion,
+                bookIndex: selectedBookIndex,
+                chapterIndex: selectedChapterIndex,
+                createdAt: new Date().toISOString(),
+                label: `${currentBook?.name} ${selectedChapterIndex + 1}`
+            };
+            newBookmarks = [newBookmark, ...bookmarks];
+            // Alert.alert(t('common.success'), t('bible.bookmark_added') || 'Bookmark Added');
+        }
+
+        setBookmarks(newBookmarks);
+        saveBookmarks(newBookmarks);
+    };
+
+    const deleteBookmark = (id: string) => {
+        const newBookmarks = bookmarks.filter(b => b.id !== id);
+        setBookmarks(newBookmarks);
+        saveBookmarks(newBookmarks);
+    };
+
+    const goToBookmark = (bookmark: Bookmark) => {
+        setSelectedVersion(bookmark.version);
+        setSelectedBookIndex(bookmark.bookIndex);
+        setSelectedChapterIndex(bookmark.chapterIndex);
+        setIsBookmarksVisible(false);
+    };
+
+    const renderBookmarksModal = () => (
+        <Modal
+            animationType="slide"
+            presentationStyle="pageSheet"
+            visible={isBookmarksVisible}
+            onRequestClose={() => setIsBookmarksVisible(false)}
+        >
+            <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+                <View style={styles.modalHeaderBar}>
+                    <Text style={[styles.modalTitleText, { color: colors.text, fontSize: 20 }]}>{t('bible.bookmarks')}</Text>
+                    <TouchableOpacity onPress={() => setIsBookmarksVisible(false)}>
+                        <Text style={[styles.modalCancel, { color: colors.primary }]}>{t('common.close')}</Text>
+                    </TouchableOpacity>
+                </View>
+
+                {bookmarks.length === 0 ? (
+                    <View style={styles.emptyStateContainer}>
+                        <Ionicons name="bookmark-outline" size={64} color={colors.textSecondary} style={{ opacity: 0.5 }} />
+                        <Text style={[styles.emptyStateText, { color: colors.textSecondary }]}>{t('bible.no_bookmarks')}</Text>
+                    </View>
+                ) : (
+                    <FlatList
+                        data={bookmarks}
+                        keyExtractor={item => item.id}
+                        contentContainerStyle={{ padding: 20 }}
+                        renderItem={({ item }) => (
+                            <TouchableOpacity
+                                style={[styles.bookmarkItem, { backgroundColor: colors.card, borderColor: colors.border }]}
+                                onPress={() => goToBookmark(item)}
+                            >
+                                <View style={{ flex: 1 }}>
+                                    <Text style={[styles.bookmarkLabel, { color: colors.text }]}>{item.label}</Text>
+                                    <Text style={[styles.bookmarkMeta, { color: colors.textSecondary }]}>
+                                        {item.version} • {new Date(item.createdAt).toLocaleDateString()}
+                                    </Text>
+                                </View>
+                                <TouchableOpacity onPress={() => deleteBookmark(item.id)} style={{ padding: 8 }}>
+                                    <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+                                </TouchableOpacity>
+                            </TouchableOpacity>
+                        )}
+                    />
+                )}
+            </SafeAreaView>
+        </Modal>
+    );
 
     const loadChristianFriend = async () => {
         try {
@@ -678,182 +863,156 @@ export default function BibleScreen() {
                     </View>
 
 
-                    {/* Header Actions: Version + Zoom */}
+
+
+                    {/* Header Actions: Settings + Quick Bookmark */}
                     <View style={styles.headerActions}>
-                        {/* Version selector pill */}
+                        {/* Bookmark Current Page Button (Quick Action) */}
                         <TouchableOpacity
-                            style={[styles.versionSelector, {
-                                backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : colors.primary + '15',
+                            style={[styles.iconButton, {
+                                backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                                marginRight: 4, // Changed from marginLeft to marginRight for spacing
                             }]}
-                            onPress={() => setIsVersionPickerVisible(!isVersionPickerVisible)}
+                            onPress={togglePageBookmark}
                         >
-                            <Text style={[styles.versionText, { color: colors.primary }]}>
-                                {t(`bible.versions.${selectedVersion}`) || selectedVersion}
-                            </Text>
-                            <Ionicons name="chevron-down" size={14} color={colors.primary} style={{ marginLeft: 2 }} />
+                            {/* Check if current is bookmarked to change icon */}
+                            {bookmarks.some(b => b.bookIndex === selectedBookIndex && b.chapterIndex === selectedChapterIndex && b.version === selectedVersion) ? (
+                                <Ionicons name="bookmark" size={18} color={colors.primary} />
+                            ) : (
+                                <Ionicons name="bookmark-outline" size={18} color={colors.textSecondary} />
+                            )}
                         </TouchableOpacity>
 
-                        {/* Text Size Button */}
+                        {/* Settings Button (Moved to far right) */}
                         <TouchableOpacity
                             style={[styles.iconButton, {
                                 backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
                             }]}
-                            onPress={() => setIsZoomControlsVisible(true)}
+                            onPress={() => setIsSettingsVisible(true)}
                         >
-                            <Ionicons name="text" size={18} color={colors.text} />
+                            <Ionicons name="settings-outline" size={20} color={colors.text} />
                         </TouchableOpacity>
                     </View>
                 </View>
             </Animated.View>
 
             {/* Suggestions dropdown */}
-            {suggestions.length > 0 && (
-                <View style={[
-                    styles.suggestionsContainer,
-                    {
-                        backgroundColor: colors.card,
-                        borderColor: colors.border,
-                        top: 60 + insets.top,
-                    }
-                ]}>
-                    {suggestions.map((suggestion, index) => (
-                        <TouchableOpacity
-                            key={`${suggestion.bookIndex}-${suggestion.chapter ?? 'book'}-${index}`}
-                            style={[styles.suggestionItem, { borderBottomColor: colors.border }]}
-                            onPress={() => selectSuggestion(suggestion)}
-                        >
-                            <Ionicons
-                                name={suggestion.type === 'book' ? 'book-outline' : 'document-text-outline'}
-                                size={18}
-                                color={colors.textSecondary}
-                                style={styles.suggestionIcon}
-                            />
-                            <Text style={[styles.suggestionText, { color: colors.text }]}>{suggestion.display}</Text>
-                            {suggestion.type === 'chapter' && (
-                                <Ionicons name="arrow-forward" size={14} color={colors.textSecondary} />
-                            )}
-                        </TouchableOpacity>
-                    ))}
-                </View>
-            )}
-
-
-            {isVersionPickerVisible && (
-                <View style={[
-                    styles.pickerContainer,
-                    {
-                        backgroundColor: colors.card,
-                        borderBottomColor: colors.border,
-                        top: 60 + insets.top,
-                    }
-                ]}>
-                    {BIBLE_VERSIONS.map((v, index) => (
-                        <TouchableOpacity
-                            key={v.id}
-                            style={[
-                                styles.pickerItem,
-                                {
-                                    borderBottomColor: colors.border,
-                                    backgroundColor: selectedVersion === v.id
-                                        ? (isDark ? 'rgba(255,255,255,0.05)' : colors.primary + '08')
-                                        : 'transparent',
-                                },
-                                index === BIBLE_VERSIONS.length - 1 && { borderBottomWidth: 0 }
-                            ]}
-                            onPress={() => {
-                                setSelectedVersion(v.id);
-                                setIsVersionPickerVisible(false);
-                            }}
-                        >
-                            <View style={styles.pickerItemContent}>
-                                <Text style={[
-                                    styles.pickerItemText,
-                                    { color: colors.text },
-                                    selectedVersion === v.id && { color: colors.primary, fontWeight: '600' }
-                                ]}>
-                                    {t(`bible.versions.${v.id}`) || v.name}
-                                </Text>
-                                {selectedVersion === v.id && (
-                                    <Ionicons name="checkmark" size={20} color={colors.primary} />
+            {
+                suggestions.length > 0 && (
+                    <View style={[
+                        styles.suggestionsContainer,
+                        {
+                            backgroundColor: colors.card,
+                            borderColor: colors.border,
+                            top: 60 + insets.top,
+                        }
+                    ]}>
+                        {suggestions.map((suggestion, index) => (
+                            <TouchableOpacity
+                                key={`${suggestion.bookIndex}-${suggestion.chapter ?? 'book'}-${index}`}
+                                style={[styles.suggestionItem, { borderBottomColor: colors.border }]}
+                                onPress={() => selectSuggestion(suggestion)}
+                            >
+                                <Ionicons
+                                    name={suggestion.type === 'book' ? 'book-outline' : 'document-text-outline'}
+                                    size={18}
+                                    color={colors.textSecondary}
+                                    style={styles.suggestionIcon}
+                                />
+                                <Text style={[styles.suggestionText, { color: colors.text }]}>{suggestion.display}</Text>
+                                {suggestion.type === 'chapter' && (
+                                    <Ionicons name="arrow-forward" size={14} color={colors.textSecondary} />
                                 )}
-                            </View>
-                        </TouchableOpacity>
-                    ))}
-                </View>
-            )}
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                )
+            }
 
-            {hasValidData ? (
-                <ScrollView
-                    contentContainerStyle={[styles.content, { paddingTop: 60 + insets.top }]}
-                    onScroll={handleScroll}
-                    scrollEventThrottle={16}
-                >
-                    <Text style={[styles.chapterTitle, { color: colors.text }]}>{currentBook?.name} {(validChapterIndex || 0) + 1}</Text>
-                    {currentChapter.map((verse: string, idx: number) => (
-                        <TouchableOpacity
-                            key={idx}
-                            style={[
-                                styles.verseContainer,
-                                highlights.includes(idx) && { backgroundColor: isDark ? 'rgba(255, 255, 0, 0.2)' : 'rgba(255, 255, 0, 0.3)', padding: 5, borderRadius: 5 }
-                            ]}
-                            activeOpacity={0.6}
-                            onPress={(e) => {
-                                const { pageY, locationX, locationY } = e.nativeEvent;
-                                // Simple logic: if click is in top 60% of screen, show below. Else show above.
-                                const screenHeight = Dimensions.get('window').height;
-                                const isTop = pageY < screenHeight * 0.6;
 
-                                setModalPosition({
-                                    x: 20, // Constant left margin
-                                    y: isTop ? pageY + 10 : pageY - 10,
-                                    isTop
-                                });
-                                setSelectedVerse(idx);
-                                setIsActionModalVisible(true);
-                            }}
-                        >
-                            <Text style={[styles.verseNumber, { color: colors.textSecondary }]}>{idx + 1}</Text>
-                            <Text style={[styles.bibleText, { color: colors.text, fontSize: baseFontSize, lineHeight: baseFontSize * 1.5 }]}>{verse || ''}</Text>
-                        </TouchableOpacity>
-                    ))}
-                    <View style={{ height: 100 }} />
-                </ScrollView>
-            ) : (
-                <View style={styles.content}>
-                    <Text style={{ textAlign: 'center', marginTop: 50, color: colors.textSecondary }}>{t('bible.loading')}</Text>
-                </View>
-            )}
+
+
+            {renderBookmarksModal()}
+
+
+
+            {
+                hasValidData ? (
+                    <ScrollView
+                        contentContainerStyle={[styles.content, { paddingTop: 60 + insets.top }]}
+                        onScroll={handleScroll}
+                        scrollEventThrottle={16}
+                    >
+                        <Text style={[styles.chapterTitle, { color: colors.text }]}>{currentBook?.name} {(validChapterIndex || 0) + 1}</Text>
+                        {currentChapter.map((verse: string, idx: number) => (
+                            <TouchableOpacity
+                                key={idx}
+                                style={[
+                                    styles.verseContainer,
+                                    highlights.includes(idx) && { backgroundColor: isDark ? 'rgba(255, 255, 0, 0.2)' : 'rgba(255, 255, 0, 0.3)', padding: 5, borderRadius: 5 }
+                                ]}
+                                activeOpacity={0.6}
+                                onPress={(e) => {
+                                    const { pageY, locationX, locationY } = e.nativeEvent;
+                                    // Simple logic: if click is in top 60% of screen, show below. Else show above.
+                                    const screenHeight = Dimensions.get('window').height;
+                                    const isTop = pageY < screenHeight * 0.6;
+
+                                    setModalPosition({
+                                        x: 20, // Constant left margin
+                                        y: isTop ? pageY + 10 : pageY - 10,
+                                        isTop
+                                    });
+                                    setSelectedVerse(idx);
+                                    setIsActionModalVisible(true);
+                                }}
+                            >
+                                <Text style={[styles.verseNumber, { color: colors.textSecondary }]}>{idx + 1}</Text>
+                                <Text style={[styles.bibleText, { color: colors.text, fontSize: baseFontSize, lineHeight: baseFontSize * 1.5 }]}>{verse || ''}</Text>
+                            </TouchableOpacity>
+                        ))}
+                        <View style={{ height: 100 }} />
+                    </ScrollView>
+                ) : (
+                    <View style={styles.content}>
+                        <Text style={{ textAlign: 'center', marginTop: 50, color: colors.textSecondary }}>{t('bible.loading')}</Text>
+                    </View>
+                )
+            }
 
             {/* Floating Navigation Controls - iOS 26 Glassy Design */}
-            {hasValidData && (
-                <View style={styles.floatingNavContainer}>
-                    <View style={[styles.glassyNavWrapper, { backgroundColor: isDark ? 'rgba(45, 45, 48, 0.85)' : 'rgba(255, 255, 255, 0.9)' }]}>
-                        <BlurView intensity={80} tint={isDark ? 'dark' : 'light'} style={styles.blurContainerExpanded}>
-                            <TouchableOpacity onPress={handlePrevChapter} style={styles.navButton}>
-                                <Ionicons name="chevron-back" size={22} color={isDark ? 'rgba(255,255,255,0.95)' : 'rgba(0,0,0,0.85)'} />
-                            </TouchableOpacity>
+            {
+                hasValidData && (
+                    <View style={styles.floatingNavContainer}>
+                        <View style={[styles.glassyNavWrapper, { backgroundColor: isDark ? 'rgba(45, 45, 48, 0.85)' : 'rgba(255, 255, 255, 0.9)' }]}>
+                            <BlurView intensity={80} tint={isDark ? 'dark' : 'light'} style={styles.blurContainerExpanded}>
+                                <TouchableOpacity onPress={handlePrevChapter} style={styles.navButton}>
+                                    <Ionicons name="chevron-back" size={22} color={isDark ? 'rgba(255,255,255,0.95)' : 'rgba(0,0,0,0.85)'} />
+                                </TouchableOpacity>
 
-                            <TouchableOpacity onPress={() => setIsNavVisible(true)} style={styles.floatingNavCenter}>
-                                <Text style={[styles.floatingBookName, { color: isDark ? 'rgba(255,255,255,0.98)' : 'rgba(0,0,0,0.9)' }]} numberOfLines={1}>
-                                    {currentBook?.name}
-                                </Text>
-                                <Text style={[styles.floatingChapter, { color: isDark ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.65)' }]}>
-                                    {language === 'ko'
-                                        ? `${selectedChapterIndex + 1}${t('bible.chapter')}`
-                                        : `${t('bible.chapter')} ${selectedChapterIndex + 1}`}
-                                </Text>
-                            </TouchableOpacity>
+                                <TouchableOpacity onPress={() => setIsNavVisible(true)} style={styles.floatingNavCenter}>
+                                    <Text style={[styles.floatingBookName, { color: isDark ? 'rgba(255,255,255,0.98)' : 'rgba(0,0,0,0.9)' }]} numberOfLines={1}>
+                                        {currentBook?.name}
+                                    </Text>
+                                    <Text style={[styles.floatingChapter, { color: isDark ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.65)' }]}>
+                                        {language === 'ko'
+                                            ? `${selectedChapterIndex + 1}${t('bible.chapter')}`
+                                            : `${t('bible.chapter')} ${selectedChapterIndex + 1}`}
+                                    </Text>
+                                </TouchableOpacity>
 
-                            <TouchableOpacity onPress={handleNextChapter} style={styles.navButton}>
-                                <Ionicons name="chevron-forward" size={22} color={isDark ? 'rgba(255,255,255,0.95)' : 'rgba(0,0,0,0.85)'} />
-                            </TouchableOpacity>
-                        </BlurView>
+                                <TouchableOpacity onPress={handleNextChapter} style={styles.navButton}>
+                                    <Ionicons name="chevron-forward" size={22} color={isDark ? 'rgba(255,255,255,0.95)' : 'rgba(0,0,0,0.85)'} />
+                                </TouchableOpacity>
+                            </BlurView>
+                        </View>
                     </View>
-                </View>
-            )}
+                )
+            }
 
             {renderNavModal()}
-            {renderZoomControls()}
+            {renderNavModal()}
+            {renderSettingsModal()}
 
             <Modal
                 transparent={true}
@@ -901,7 +1060,7 @@ export default function BibleScreen() {
 
             {/* Christian Friend Chat Head */}
             <AppSpecificChatHead roleType="christian" appContext="bible" />
-        </SafeAreaView>
+        </SafeAreaView >
     );
 }
 
@@ -1382,4 +1541,64 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         letterSpacing: 0.1,
     },
+    bookmarkItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+        marginBottom: 10,
+        borderRadius: 12,
+        borderWidth: 1,
+    },
+    bookmarkLabel: {
+        fontSize: 16,
+        fontWeight: '600',
+        marginBottom: 4,
+    },
+    bookmarkMeta: {
+        fontSize: 12,
+    },
+    settingsSection: {
+        borderRadius: 12,
+        marginBottom: 20,
+        borderWidth: 1,
+        overflow: 'hidden',
+        paddingVertical: 16,
+    },
+    settingsSectionTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        marginLeft: 16,
+        marginBottom: 10,
+        textTransform: 'uppercase',
+    },
+    settingsLinkItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 16,
+        borderRadius: 12,
+        borderWidth: 1,
+        marginBottom: 20,
+    },
+    settingsLinkText: {
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    settingsHeader: {
+        fontSize: 14,
+        fontWeight: '600',
+        textTransform: 'uppercase',
+        marginLeft: 4,
+    },
+    modalHeaderBar: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: 'rgba(0,0,0,0.1)',
+    },
+    modalCancel: { fontSize: 17 },
+    modalTitleText: { fontSize: 17, fontWeight: '600' },
 });
