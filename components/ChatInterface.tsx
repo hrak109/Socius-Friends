@@ -241,18 +241,28 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
                         const reversedMessages = formattedMessages.reverse();
                         setMessages(reversedMessages);
 
-                        // CRITICAL: After loading history, check if bot has replied AFTER user's last message
-                        // This handles the case where messages arrive late (e.g., slow network)
+                        // CRITICAL: After loading history, determine typing state based on message order
+                        // This handles app resume after backgrounding
                         const lastMsg = reversedMessages[0]; // GiftedChat shows newest first
-                        if (lastMsg && lastMsg.user._id !== 1) {
-                            // Bot message exists, find the last USER message to compare timestamps
+
+                        if (lastMsg && lastMsg.user._id === 1) {
+                            // Last message is from USER - still waiting for bot response
+                            // Restore typing indicator (may have been cleared on app resume)
+                            if (!friendId) { // Only for Socius chats, not DMs
+                                setTyping(threadId, true);
+                                setTyping(context, true);
+                                setIsTyping(true);
+                                setIsWaitingForResponse(true);
+                            }
+                        } else if (lastMsg && lastMsg.user._id !== 1) {
+                            // Last message is from bot - check if it's after user's last message
                             const lastUserMsg = reversedMessages.find(m => m.user._id === 1);
 
                             if (lastUserMsg) {
                                 const botMessageTime = new Date(lastMsg.createdAt).getTime();
                                 const userMessageTime = new Date(lastUserMsg.createdAt).getTime();
 
-                                // Only clear if bot message is AFTER user's last message
+                                // Bot replied after user's last message - clear typing
                                 if (botMessageTime > userMessageTime) {
                                     setTyping(threadId, false);
                                     setTyping(context, false);
@@ -260,6 +270,12 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
                                     setIsWaitingForResponse(false);
                                     if (responseTimeoutRef.current) clearTimeout(responseTimeoutRef.current);
                                 }
+                            } else {
+                                // No user messages yet, just bot - clear typing
+                                setTyping(threadId, false);
+                                setTyping(context, false);
+                                setIsTyping(false);
+                                setIsWaitingForResponse(false);
                             }
                         }
 

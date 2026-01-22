@@ -258,6 +258,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             const handleAppStateChange = (nextAppState: AppStateStatus) => {
                 if (nextAppState === 'active') {
 
+                    // Clear all typing indicators on resume - SSE events may have been missed
+                    // Fresh history fetch will accurately show message state
+                    setTypingThreads(new Set());
+                    typingTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
+                    typingTimeoutsRef.current.clear();
+
                     // Reconnect SSE when app becomes active
                     if (sseCleanupRef.current) {
                         sseCleanupRef.current();

@@ -44,6 +44,7 @@ interface ChatThread {
     avatar?: string;
     lastMessage?: string;
     lastMessageTime?: string;
+    lastMessageIsFromUser?: boolean;  // For Socius threads: true = waiting for response
     unread?: number;
     sociusRole?: string;
     multilingual_selection?: string;
@@ -54,7 +55,7 @@ export default function MessagesScreen() {
     const { colors } = useTheme();
     const { t } = useLanguage();
     const { session } = useSession();
-    const { lastNotificationTime, typingThreads } = useNotifications();
+    const { lastNotificationTime, typingThreads, setTyping } = useNotifications();
     const [threads, setThreads] = useState<ChatThread[]>([]);
     const [refreshing, setRefreshing] = useState(false);
     const [apps, setApps] = useState(DEFAULT_APPS);
@@ -170,10 +171,22 @@ export default function MessagesScreen() {
                         avatar: comp.avatar,
                         lastMessage: comp.last_message,
                         lastMessageTime: comp.last_message_time,
+                        lastMessageIsFromUser: comp.last_message_is_from_user,
                         sociusRole: comp.role,
                         multilingual_selection: comp.multilingual_selection,
                         unread: comp.unread_count || 0
                     }));
+
+                // Restore typing indicators for Socius threads where we're waiting for response
+                sociusThreads.forEach(thread => {
+                    if (thread.lastMessageIsFromUser) {
+                        // Last message is from user = still waiting for bot response
+                        setTyping(thread.id, true);
+                    } else {
+                        // Bot has replied, ensure typing is cleared
+                        setTyping(thread.id, false);
+                    }
+                });
 
                 // Combine and sort by last message time (newest first)
                 const allThreads = [...sociusThreads, ...userThreads].sort((a, b) => {
