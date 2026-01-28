@@ -54,7 +54,10 @@ describe('useChat hook', () => {
         expect(result.current.isTyping).toBe(false);
     });
 
-    it('resolves google photo for currentUser', () => {
+    it('resolves google photo for currentUser as fallback', () => {
+        const useUserProfile = require('@/context/UserProfileContext').useUserProfile;
+        useUserProfile.mockReturnValue({ displayName: 'Test', displayAvatar: null });
+
         const { result } = renderHook(() => useChat({ topic: 'global' }));
         // Falls back to user.photo because displayAvatar is null
         expect(result.current.currentUser.avatar).toEqual({ uri: 'http://google.com/photo.jpg' });
@@ -66,6 +69,14 @@ describe('useChat hook', () => {
 
         const { result } = renderHook(() => useChat({ topic: 'global' }));
         expect(result.current.currentUser.avatar).toEqual({ uri: 'http://google.com/photo.jpg' });
+    });
+
+    it('resolves custom avatar for currentUser', () => {
+        const useUserProfile = require('@/context/UserProfileContext').useUserProfile;
+        useUserProfile.mockReturnValue({ displayName: 'Test', displayAvatar: 'http://custom.com/img.png' });
+
+        const { result } = renderHook(() => useChat({ topic: 'global' }));
+        expect(result.current.currentUser.avatar).toEqual({ uri: 'http://custom.com/img.png' });
     });
 
     it('sets initial message if provided', () => {

@@ -19,18 +19,15 @@ jobs:
         with:
           node-version: 18
           cache: 'npm'
-          cache-dependency-path: socius-friends/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        working-directory: ./socius-friends
         run: npm ci
 
       - name: Run Lint
-        working-directory: ./socius-friends
         run: npm run lint
 
       - name: Run Type Check
-        working-directory: ./socius-friends
         run: npm run type-check
 
   test:
@@ -45,12 +42,10 @@ jobs:
         with:
           node-version: 18
           cache: 'npm'
-          cache-dependency-path: socius-friends/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        working-directory: ./socius-friends
         run: npm ci
 
       - name: Run Tests
-        working-directory: ./socius-friends
         run: npm run test:coverage
