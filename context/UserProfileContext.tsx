@@ -74,13 +74,13 @@ export const UserProfileProvider = ({ children }: { children: React.ReactNode })
                 // Update state with fresh data
                 setDisplayName(resolvedName);
                 setUsername(data.username);
-                setDisplayAvatar(data.custom_avatar_url || 'user-1');
+                setDisplayAvatar(data.custom_avatar_url || 'google');
 
 
                 // Sync new data to storage
                 await AsyncStorage.setItem('user_display_name', resolvedName || '');
                 if (data.username) await AsyncStorage.setItem('user_username', data.username);
-                if (data.custom_avatar_url) await AsyncStorage.setItem('user_display_avatar', data.custom_avatar_url);
+                await AsyncStorage.setItem('user_display_avatar', data.custom_avatar_url || 'google');
 
             } catch {
 

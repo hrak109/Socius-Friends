@@ -20,7 +20,18 @@ mockUseChat.mockReturnValue({
 });
 
 jest.mock('@/context/ThemeContext', () => ({
-    useTheme: () => ({ colors: { background: '#fff', text: '#000', primary: 'blue' } }),
+    useTheme: () => ({
+        colors: {
+            background: '#fff',
+            text: '#000',
+            primary: 'blue',
+            card: '#f8f8f8',
+            inputBackground: '#eee',
+            border: '#ddd',
+            textSecondary: '#666',
+            buttonText: '#fff'
+        }
+    }),
 }));
 
 jest.mock('@/context/LanguageContext', () => ({

@@ -51,14 +51,15 @@ export function useChat({
     // Current User Definition
     const currentUser: User = useMemo(() => {
         let avatarSource;
-        if (displayAvatar === 'google') {
-            avatarSource = user?.photo ? { uri: user.photo } : undefined;
+        if (displayAvatar === 'google' && user?.photo) {
+            avatarSource = { uri: user.photo };
         } else if (displayAvatar && PROFILE_AVATAR_MAP[displayAvatar]) {
             avatarSource = PROFILE_AVATAR_MAP[displayAvatar];
         } else if (displayAvatar && displayAvatar.startsWith('http')) {
             avatarSource = { uri: displayAvatar };
-        } else {
-            avatarSource = user?.photo ? { uri: user.photo } : undefined;
+        } else if (user?.photo) {
+            // Background fallback if nothing else set
+            avatarSource = { uri: user.photo };
         }
 
         return {

@@ -186,20 +186,11 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
     );
 
     const renderAvatar = (props: any) => {
+        // FOR THE CURRENT USER (Me)
         if (props.currentMessage?.user?._id === 1) {
-            // User Avatar Logic now simplified since useChat provides the user object partially,
-            // but GiftedChat renderAvatar might need the full object or we just rely on props.
-            // The logic below was complex, let's trust what useChat provides or fallbacks here.
-
-            // Actually, we can just let GiftedChat handle it if the user object is correct.
-            // But if we want custom mapping/overrides:
-            // But if we want custom mapping/overrides:
-            return (
-                <Avatar
-                    {...props}
-                    imageStyle={{ left: styles.userAvatar, right: styles.userAvatar }}
-                />
-            );
+            // Use the live currentUser avatar from the useChat hook 
+            // instead of the static props.currentMessage.user.avatar
+            return <SociusAvatar source={currentUser.avatar} />;
         }
 
         // OTHER USER/BOT AVATAR LOGIC
