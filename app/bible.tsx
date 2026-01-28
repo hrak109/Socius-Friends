@@ -1,41 +1,18 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Modal, FlatList, ActivityIndicator, Alert, TextInput, Keyboard, Animated, NativeSyntheticEvent, NativeScrollEvent, Platform, Dimensions } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Modal, FlatList, ActivityIndicator, TextInput, Animated, NativeSyntheticEvent, NativeScrollEvent, Platform, Dimensions } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 import { BlurView } from 'expo-blur';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Clipboard from 'expo-clipboard';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '@/context/ThemeContext';
 
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { useSharedValue, withTiming, withDelay, runOnJS } from 'react-native-reanimated';
-import { useLanguage } from '../context/LanguageContext';
-import api from '../services/api';
-import AppSpecificChatHead from '../components/AppSpecificChatHead';
+import { useSharedValue } from 'react-native-reanimated';
+import { useLanguage } from '@/context/LanguageContext';
+import AppSpecificChatHead from '@/components/features/chat/AppSpecificChatHead';
+import { BibleSettingsModal } from '@/components/features/bible/BibleSettingsModal';
+import { BibleBookmarksModal } from '@/components/features/bible/BibleBookmarksModal';
 
-// Import Bible Data
-import KRV from '../constants/bible/bible.json';
-import NIV from '../constants/bible/niv.json';
-import GAEYEOK from '../constants/bible/gaeyeok.json';
-import SAEBUNYEOK from '../constants/bible/saebunyeok.json';
-
-interface BibleBook {
-    name: string;
-    chapters: string[][];
-}
-
-interface BibleData {
-    name: string;
-    books: BibleBook[];
-}
-
-const BIBLE_VERSIONS: { id: string; name: string; data: BibleData }[] = [
-    { id: 'KRV', name: 'Korean Revised', data: KRV as unknown as BibleData },
-    { id: 'NIV', name: 'New International', data: NIV as unknown as BibleData },
-    { id: 'GAE', name: 'Gaeyeok', data: GAEYEOK as unknown as BibleData },
-    { id: 'SAE', name: 'Saebunyeok', data: SAEBUNYEOK as unknown as BibleData },
-];
+import { useBible, BIBLE_VERSIONS } from '@/hooks/useBible';
 
 export default function BibleScreen() {
     const insets = useSafeAreaInsets();
@@ -43,49 +20,40 @@ export default function BibleScreen() {
     const { t, language } = useLanguage();
     const router = useRouter();
 
-    const [isLoading, setIsLoading] = useState(true); // Default loading to true to load persistence
-    const [baseFontSize, setBaseFontSize] = useState(18);
+    const {
+        baseFontSize, handleZoom,
+        selectedVersion, setSelectedVersion,
+        selectedBookIndex, setSelectedBookIndex,
+        selectedChapterIndex, setSelectedChapterIndex,
+        selectedVerse, setSelectedVerse,
 
-    // State Definitions
-    const [selectedVersion, setSelectedVersion] = useState<string>('NIV');
-    const [searchText, setSearchText] = useState('');
+        currentBible, currentBook, currentChapter,
+        bookmarks, highlights,
+        isLoading, // Assuming isLoading is also from useBible
+
+        isActionModalVisible, setIsActionModalVisible,
+        isNavVisible, setIsNavVisible,
+        navMode, setNavMode,
+        isSettingsVisible, setIsSettingsVisible,
+        isBookmarksVisible, setIsBookmarksVisible,
+        searchText, setSearchText,
+        suggestions,
+
+        handleSearch, selectSuggestion,
+        handleNextChapter, handlePrevChapter,
+        togglePageBookmark, deleteBookmark, goToBookmark,
+        toggleHighlight, handleCopy, handleAskSocius
+    } = useBible();
+
     const [modalPosition, setModalPosition] = useState({ x: 0, y: 0, isTop: false });
     const accentColor = colors.primary;
 
-    const currentBible = BIBLE_VERSIONS.find(v => v.id === selectedVersion)?.data || BIBLE_VERSIONS[0].data;
-
-    const [selectedBookIndex, setSelectedBookIndex] = useState(0);
-    const [selectedChapterIndex, setSelectedChapterIndex] = useState(0);
-    const [selectedVerse, setSelectedVerse] = useState<number | null>(null);
-
-    const [isSearchVisible, setIsSearchVisible] = useState(false);
-    const [highlights, setHighlights] = useState<any[]>([]);
-    const [isActionModalVisible, setIsActionModalVisible] = useState(false);
-    // const [isVersionPickerVisible, setIsVersionPickerVisible] = useState(false); // Refactored into Settings
-    const [isNavVisible, setIsNavVisible] = useState(false);
-    const [navMode, setNavMode] = useState<'book' | 'chapter'>('book');
-    // const [isZoomControlsVisible, setIsZoomControlsVisible] = useState(false); // Refactored into Settings
-    const [isSettingsVisible, setIsSettingsVisible] = useState(false);
-    const [christianFriend, setChristianFriend] = useState<any>(null);
-
     // Reanimated
-    const zoomIndicatorOpacity = useSharedValue(0);
     const animatedFontSize = useSharedValue(18);
 
-    // Bookmarks
-    type Bookmark = {
-        id: string;
-        version: string;
-        bookIndex: number;
-        chapterIndex: number; // 0-based
-        createdAt: string;
-        label?: string;
-    };
-    const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
-    const [isBookmarksVisible, setIsBookmarksVisible] = useState(false);
-
-    // Convert state to shared value on load
+    // Sync Reanimated value when state changes (persistence load)
     useEffect(() => {
+        animatedFontSize.value = baseFontSize;
     }, [baseFontSize, animatedFontSize]);
 
     // Header auto-hide on scroll
@@ -133,582 +101,10 @@ export default function BibleScreen() {
         lastScrollY.current = currentScrollY;
     };
 
-
-    // Generate suggestions based on search text
-    type Suggestion = {
-        type: 'book' | 'chapter';
-        bookIndex: number;
-        bookName: string;
-        chapter?: number;
-        display: string;
-    };
-
-    const suggestions = useMemo((): Suggestion[] => {
-        if (!searchText.trim() || !currentBible?.books) return [];
-
-        const query = searchText.trim().toLowerCase();
-        const results: Suggestion[] = [];
-
-        // Find matching books
-        currentBible.books.forEach((book: BibleBook, bookIndex: number) => {
-            const bookName = book.name.toLowerCase();
-            if (bookName.startsWith(query) || bookName.includes(query)) {
-                // Add book suggestion
-                results.push({
-                    type: 'book',
-                    bookIndex,
-                    bookName: book.name,
-                    display: book.name
-                });
-
-                // Add first few chapters
-                const chaptersToShow = Math.min(3, book.chapters?.length || 0);
-                for (let i = 0; i < chaptersToShow; i++) {
-                    results.push({
-                        type: 'chapter',
-                        bookIndex,
-                        bookName: book.name,
-                        chapter: i,
-                        display: language === 'ko'
-                            ? `${book.name} ${i + 1}장`
-                            : `${book.name} ${i + 1}`
-                    });
-                }
-            }
-        });
-
-        // Also try to parse "Book Chapter" format
-        const bookChapterMatch = query.match(/^(.+?)\s+(\d+)$/i);
-        if (bookChapterMatch) {
-            const bookQuery = bookChapterMatch[1];
-            const chapterNum = parseInt(bookChapterMatch[2]);
-
-            currentBible.books.forEach((book, bookIndex) => {
-                const bookName = book.name.toLowerCase();
-                if (bookName.startsWith(bookQuery) || bookName.includes(bookQuery)) {
-                    const maxChapter = book.chapters?.length || 0;
-                    if (chapterNum >= 1 && chapterNum <= maxChapter) {
-                        // Check if not already in results
-                        const exists = results.some(r => r.bookIndex === bookIndex && r.chapter === chapterNum - 1);
-                        if (!exists) {
-                            results.unshift({
-                                type: 'chapter',
-                                bookIndex,
-                                bookName: book.name,
-                                chapter: chapterNum - 1,
-                                display: language === 'ko'
-                                    ? `${book.name} ${chapterNum}장`
-                                    : `${book.name} ${chapterNum}`
-                            });
-                        }
-                    }
-                }
-            });
-        }
-
-        return results.slice(0, 6); // Limit to 6 suggestions
-    }, [searchText, currentBible, language]);
-
-    const selectSuggestion = (suggestion: Suggestion) => {
-        Keyboard.dismiss();
-        setSelectedBookIndex(suggestion.bookIndex);
-        if (suggestion.chapter !== undefined) {
-            setSelectedChapterIndex(suggestion.chapter);
-        } else {
-            setSelectedChapterIndex(0);
-        }
-        setSearchText('');
-    };
-
-    // Parse search query like "Genesis 1:5" or "창세기 1:5" or "Gen 1" or just "1:5"
-    const handleSearch = (query: string) => {
-        if (!query.trim() || !currentBible?.books) return;
-
-        // Try to parse patterns like "Book Chapter:Verse" or "Book Chapter"
-        // Examples: "Genesis 1:5", "창세기 1", "Gen 3:16", "1:5" (current book)
-        const trimmed = query.trim();
-
-        // Pattern: just chapter:verse for current book (e.g., "3:16")
-        const chapterVerseMatch = trimmed.match(/^(\d+):(\d+)$/);
-        if (chapterVerseMatch) {
-            const chapter = parseInt(chapterVerseMatch[1]) - 1;
-            // Note: verse parsing available via chapterVerseMatch[2] if needed for future scroll-to-verse feature
-            if (currentBook && chapter >= 0 && chapter < currentBook.chapters.length) {
-                setSelectedChapterIndex(chapter);
-                setSearchText('');
-                setIsSearchVisible(false);
-                // Optionally scroll to verse - for now just navigate to chapter
-                return;
-            }
-        }
-
-        // Pattern: just chapter for current book (e.g., "3")
-        const justChapterMatch = trimmed.match(/^(\d+)$/);
-        if (justChapterMatch) {
-            const chapter = parseInt(justChapterMatch[1]) - 1;
-            if (currentBook && chapter >= 0 && chapter < currentBook.chapters.length) {
-                setSelectedChapterIndex(chapter);
-                setSearchText('');
-                setIsSearchVisible(false);
-                return;
-            }
-        }
-
-        // Pattern: Book name + chapter (+ optional verse)
-        // Try to find book by partial match
-        const bookMatch = trimmed.match(/^(.+?)\s+(\d+)(?::(\d+))?$/i);
-        if (bookMatch) {
-            const bookName = bookMatch[1].toLowerCase();
-            const chapter = parseInt(bookMatch[2]) - 1;
-
-            // Find book by partial name match
-            const bookIndex = currentBible.books.findIndex((b: BibleBook) =>
-                b.name.toLowerCase().startsWith(bookName) ||
-                b.name.toLowerCase().includes(bookName)
-            );
-
-            if (bookIndex >= 0) {
-                const book = currentBible.books[bookIndex];
-                if (chapter >= 0 && chapter < book.chapters.length) {
-                    setSelectedBookIndex(bookIndex);
-                    setSelectedChapterIndex(chapter);
-                    setSearchText('');
-                    setIsSearchVisible(false);
-                    return;
-                }
-            }
-        }
-
-        // If no match found, try just book name
-        const bookOnlyMatch = currentBible.books.findIndex((b: BibleBook) =>
-            b.name.toLowerCase().startsWith(trimmed.toLowerCase()) ||
-            b.name.toLowerCase().includes(trimmed.toLowerCase())
-        );
-        if (bookOnlyMatch >= 0) {
-            setSelectedBookIndex(bookOnlyMatch);
-            setSelectedChapterIndex(0);
-            setSearchText('');
-            setIsSearchVisible(false);
-            return;
-        }
-
-        // No match - could show alert but for now just clear
-        Alert.alert(t('common.error'), t('bible.search_not_found') || 'Book not found');
-    };
-
-    // Persistence Logic
-    useEffect(() => {
-        loadProgress();
-        loadChristianFriend();
-    }, []);
-
-    useEffect(() => {
-        if (!isLoading) {
-            saveProgress();
-            loadHighlights();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedVersion, selectedBookIndex, selectedChapterIndex]);
-
-    // Clear selection when changing chapters
-    useEffect(() => {
-        setSelectedVerse(null);
-        setIsActionModalVisible(false);
-    }, [selectedVersion, selectedBookIndex, selectedChapterIndex]);
-
-    const loadProgress = async () => {
-        try {
-            setIsLoading(true);
-            const savedVersion = await AsyncStorage.getItem('bible_version');
-            const savedBook = await AsyncStorage.getItem('bible_book');
-            const savedChapter = await AsyncStorage.getItem('bible_chapter');
-            const savedFontSize = await AsyncStorage.getItem('bible_font_size');
-
-            if (savedVersion) setSelectedVersion(savedVersion);
-            if (savedBook) setSelectedBookIndex(parseInt(savedBook));
-            if (savedChapter) setSelectedChapterIndex(parseInt(savedChapter));
-            if (savedFontSize) setBaseFontSize(parseFloat(savedFontSize));
-        } catch (error) {
-            console.error('Failed to load bible progress', error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const saveProgress = async () => {
-        try {
-            await AsyncStorage.setItem('bible_version', selectedVersion);
-            await AsyncStorage.setItem('bible_book', selectedBookIndex.toString());
-            await AsyncStorage.setItem('bible_chapter', selectedChapterIndex.toString());
-        } catch (error) {
-            console.error('Failed to save bible progress', error);
-        }
-    };
-
-    const saveFontSize = async (size: number) => {
-        try {
-            await AsyncStorage.setItem('bible_font_size', size.toString());
-        } catch (error) {
-            console.error('Failed to save font size', error);
-        }
-    };
-
-    const handleZoom = (increment: number) => {
-        const newSize = Math.min(Math.max(baseFontSize + increment, 12), 40);
-        setBaseFontSize(newSize);
-        saveFontSize(newSize);
-        // Temporarily show indicator if modifying via buttons? Maybe not needed if menu is open.
-    };
-
-    const pinchGesture = Gesture.Pinch()
-        .onUpdate((e) => {
-            animatedFontSize.value = Math.min(Math.max(baseFontSize * e.scale, 12), 40);
-        })
-        .onEnd(() => {
-            runOnJS(setBaseFontSize)(animatedFontSize.value);
-            runOnJS(saveFontSize)(animatedFontSize.value);
-            zoomIndicatorOpacity.value = withDelay(1000, withTiming(0, { duration: 500 }));
-        });
-
-
-
-    const renderSettingsModal = () => (
-        <Modal
-            animationType="slide"
-            presentationStyle="pageSheet"
-            visible={isSettingsVisible}
-            onRequestClose={() => setIsSettingsVisible(false)}
-        >
-            <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-                <View style={styles.modalHeaderBar}>
-                    <Text style={[styles.modalTitleText, { color: colors.text, fontSize: 20 }]}>{t('bible.settings') || 'Settings'}</Text>
-                    <TouchableOpacity onPress={() => setIsSettingsVisible(false)}>
-                        <Text style={[styles.modalCancel, { color: colors.primary }]}>{t('common.close')}</Text>
-                    </TouchableOpacity>
-                </View>
-
-                <ScrollView contentContainerStyle={{ padding: 20 }}>
-                    {/* Text Size Section */}
-                    <View style={[styles.settingsSection, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                        <Text style={[styles.settingsSectionTitle, { color: colors.textSecondary }]}>{t('bible.text_size') || 'Text Size'}</Text>
-                        <View style={styles.zoomRow}>
-                            <TouchableOpacity
-                                style={[styles.zoomBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
-                                onPress={() => handleZoom(-2)}
-                            >
-                                <Ionicons name="remove" size={24} color={colors.text} />
-                            </TouchableOpacity>
-
-                            <Text style={[styles.zoomValue, { color: colors.text }]}>
-                                {Math.round(baseFontSize)}
-                            </Text>
-
-                            <TouchableOpacity
-                                style={[styles.zoomBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
-                                onPress={() => handleZoom(2)}
-                            >
-                                <Ionicons name="add" size={24} color={colors.text} />
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-
-                    {/* Bookmarks Link */}
-                    <TouchableOpacity
-                        style={[styles.settingsLinkItem, { backgroundColor: colors.card, borderColor: colors.border }]}
-                        onPress={() => {
-                            setIsSettingsVisible(false);
-                            setTimeout(() => setIsBookmarksVisible(true), 300);
-                        }}
-                    >
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            <Ionicons name="bookmark" size={22} color={colors.primary} style={{ marginRight: 12 }} />
-                            <Text style={[styles.settingsLinkText, { color: colors.text }]}>{t('bible.bookmarks')}</Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-                    </TouchableOpacity>
-
-                    {/* Versions Section */}
-                    <Text style={[styles.settingsHeader, { color: colors.textSecondary, marginTop: 24, marginBottom: 8 }]}>{t('bible.version') || 'Version'}</Text>
-                    <View style={[styles.settingsSection, { backgroundColor: colors.card, borderColor: colors.border, paddingVertical: 0 }]}>
-                        {BIBLE_VERSIONS.map((v, index) => (
-                            <TouchableOpacity
-                                key={v.id}
-                                style={[
-                                    styles.pickerItem,
-                                    {
-                                        borderBottomColor: colors.border,
-                                        backgroundColor: selectedVersion === v.id
-                                            ? (isDark ? 'rgba(255,255,255,0.05)' : colors.primary + '08')
-                                            : 'transparent',
-                                    },
-                                    index === BIBLE_VERSIONS.length - 1 && { borderBottomWidth: 0 }
-                                ]}
-                                onPress={() => {
-                                    setSelectedVersion(v.id);
-                                }}
-                            >
-                                <View style={styles.pickerItemContent}>
-                                    <Text style={[
-                                        styles.pickerItemText,
-                                        { color: colors.text },
-                                        selectedVersion === v.id && { color: colors.primary, fontWeight: '600' }
-                                    ]}>
-                                        {t(`bible.versions.${v.id}`) || v.name}
-                                    </Text>
-                                    {selectedVersion === v.id && (
-                                        <Ionicons name="checkmark" size={20} color={colors.primary} />
-                                    )}
-                                </View>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-
-                </ScrollView>
-            </SafeAreaView>
-        </Modal>
-    );
-
-    const loadHighlights = async () => {
-        try {
-            const key = `highlights_${selectedVersion}_${selectedBookIndex}_${selectedChapterIndex}`;
-            const saved = await AsyncStorage.getItem(key);
-            if (saved) {
-                setHighlights(JSON.parse(saved));
-            } else {
-                setHighlights([]);
-            }
-        } catch (error) {
-            console.error('Failed to load highlights', error);
-        }
-    };
-
-    const toggleHighlight = async () => {
-        if (selectedVerse === null) return;
-
-        let newHighlights;
-        if (highlights.includes(selectedVerse)) {
-            newHighlights = highlights.filter(h => h !== selectedVerse);
-        } else {
-            newHighlights = [...highlights, selectedVerse];
-        }
-
-        setHighlights(newHighlights);
-
-        try {
-            const key = `highlights_${selectedVersion}_${selectedBookIndex}_${selectedChapterIndex}`;
-            await AsyncStorage.setItem(key, JSON.stringify(newHighlights));
-        } catch (error) {
-            console.error('Failed to save highlights', error);
-        }
-        setIsActionModalVisible(false);
-        setSelectedVerse(null);
-    };
-
-    // ... (existing handleCopy)
-    const handleCopy = async () => {
-        if (selectedVerse === null || !currentChapter[selectedVerse]) return;
-        const text = `${currentBook?.name} ${selectedChapterIndex + 1}:${selectedVerse + 1} - ${currentChapter[selectedVerse]}`;
-        await Clipboard.setStringAsync(text);
-        setIsActionModalVisible(false);
-        setSelectedVerse(null);
-        Alert.alert(t('common.success'), t('bible.copy_success') || 'Copied to clipboard');
-    };
-
-    const loadBookmarks = async () => {
-        try {
-            const saved = await AsyncStorage.getItem('bible_bookmarks');
-            if (saved) {
-                setBookmarks(JSON.parse(saved));
-            }
-        } catch (error) {
-            console.error('Failed to load bookmarks', error);
-        }
-    };
-
-    const saveBookmarks = async (newBookmarks: Bookmark[]) => {
-        try {
-            await AsyncStorage.setItem('bible_bookmarks', JSON.stringify(newBookmarks));
-        } catch (error) {
-            console.error('Failed to save bookmarks', error);
-        }
-    };
-
-    useEffect(() => {
-        loadBookmarks();
-    }, []);
-
-    const togglePageBookmark = async () => {
-        // Bookmark current page (book + chapter)
-        const existingIndex = bookmarks.findIndex(b =>
-            b.bookIndex === selectedBookIndex &&
-            b.chapterIndex === selectedChapterIndex &&
-            b.version === selectedVersion
-        );
-
-        let newBookmarks;
-        if (existingIndex >= 0) {
-            // Remove
-            newBookmarks = bookmarks.filter((_, i) => i !== existingIndex);
-            // Alert.alert(t('common.success'), t('bible.bookmark_removed') || 'Bookmark Removed');
-        } else {
-            // Add
-            const newBookmark: Bookmark = {
-                id: Date.now().toString(),
-                version: selectedVersion,
-                bookIndex: selectedBookIndex,
-                chapterIndex: selectedChapterIndex,
-                createdAt: new Date().toISOString(),
-                label: `${currentBook?.name} ${selectedChapterIndex + 1}`
-            };
-            newBookmarks = [newBookmark, ...bookmarks];
-            // Alert.alert(t('common.success'), t('bible.bookmark_added') || 'Bookmark Added');
-        }
-
-        setBookmarks(newBookmarks);
-        saveBookmarks(newBookmarks);
-    };
-
-    const deleteBookmark = (id: string) => {
-        const newBookmarks = bookmarks.filter(b => b.id !== id);
-        setBookmarks(newBookmarks);
-        saveBookmarks(newBookmarks);
-    };
-
-    const goToBookmark = (bookmark: Bookmark) => {
-        setSelectedVersion(bookmark.version);
-        setSelectedBookIndex(bookmark.bookIndex);
-        setSelectedChapterIndex(bookmark.chapterIndex);
-        setIsBookmarksVisible(false);
-    };
-
-    const renderBookmarksModal = () => (
-        <Modal
-            animationType="slide"
-            presentationStyle="pageSheet"
-            visible={isBookmarksVisible}
-            onRequestClose={() => setIsBookmarksVisible(false)}
-        >
-            <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-                <View style={styles.modalHeaderBar}>
-                    <Text style={[styles.modalTitleText, { color: colors.text, fontSize: 20 }]}>{t('bible.bookmarks')}</Text>
-                    <TouchableOpacity onPress={() => setIsBookmarksVisible(false)}>
-                        <Text style={[styles.modalCancel, { color: colors.primary }]}>{t('common.close')}</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {bookmarks.length === 0 ? (
-                    <View style={styles.emptyStateContainer}>
-                        <Ionicons name="bookmark-outline" size={64} color={colors.textSecondary} style={{ opacity: 0.5 }} />
-                        <Text style={[styles.emptyStateText, { color: colors.textSecondary }]}>{t('bible.no_bookmarks')}</Text>
-                    </View>
-                ) : (
-                    <FlatList
-                        data={bookmarks}
-                        keyExtractor={item => item.id}
-                        contentContainerStyle={{ padding: 20 }}
-                        renderItem={({ item }) => (
-                            <TouchableOpacity
-                                style={[styles.bookmarkItem, { backgroundColor: colors.card, borderColor: colors.border }]}
-                                onPress={() => goToBookmark(item)}
-                            >
-                                <View style={{ flex: 1 }}>
-                                    <Text style={[styles.bookmarkLabel, { color: colors.text }]}>{item.label}</Text>
-                                    <Text style={[styles.bookmarkMeta, { color: colors.textSecondary }]}>
-                                        {item.version} • {new Date(item.createdAt).toLocaleDateString()}
-                                    </Text>
-                                </View>
-                                <TouchableOpacity onPress={() => deleteBookmark(item.id)} style={{ padding: 8 }}>
-                                    <Ionicons name="trash-outline" size={20} color="#FF3B30" />
-                                </TouchableOpacity>
-                            </TouchableOpacity>
-                        )}
-                    />
-                )}
-            </SafeAreaView>
-        </Modal>
-    );
-
-    const loadChristianFriend = async () => {
-        try {
-            const response = await api.get(`/friends/socius?_t=${Date.now()}`);
-            const companions = response.data || [];
-            const friend = companions.find((c: any) => c.role === 'christian');
-            setChristianFriend(friend);
-        } catch (error) {
-
-        }
-    };
-
-    const handleAskSocius = () => {
-        if (selectedVerse === null || !currentChapter[selectedVerse]) return;
-
-        const verseText = currentChapter[selectedVerse];
-        const reference = `${currentBook?.name} ${selectedChapterIndex + 1}:${selectedVerse + 1}`;
-        const query = `${reference} - "${verseText}"`;
-
-        setIsActionModalVisible(false);
-        setSelectedVerse(null);
-
-        if (christianFriend) {
-            router.push({
-                pathname: '/chat/[id]',
-                params: {
-                    id: `socius-${christianFriend.id}`,
-                    type: 'socius',
-                    name: christianFriend.name,
-                    avatar: christianFriend.avatar,
-                    sociusRole: christianFriend.role,
-                    initialText: query
-                }
-            } as any);
-        } else {
-            // Fallback if friend not loaded - maybe just go to generic chat or show alert?
-            // For now, try to go to socius-default but with context
-            Alert.alert(t('common.error'), 'Socius friend not ready. Please try again.');
-        }
-    };
-
-    // Derived State
-    const validBookIndex = selectedBookIndex < (currentBible?.books?.length || 0) ? selectedBookIndex : 0;
-    const currentBook = currentBible?.books?.[validBookIndex];
+    // Derived State for Rendering
+    const hasValidData = !!(currentBible && currentBook && Array.isArray(currentBook.chapters));
     const validChapterIndex = currentBook && selectedChapterIndex < (currentBook.chapters?.length || 0) ? selectedChapterIndex : 0;
-    const currentChapter = currentBook?.chapters?.[validChapterIndex] || [];
-    const hasValidData = currentBible && currentBook && Array.isArray(currentBook.chapters);
 
-
-    // Auto-correct invalid state (e.g. after version change or bad load)
-    useEffect(() => {
-        if (selectedBookIndex !== validBookIndex) {
-            setSelectedBookIndex(validBookIndex);
-        }
-        if (selectedChapterIndex !== validChapterIndex) {
-            setSelectedChapterIndex(validChapterIndex);
-        }
-    }, [selectedBookIndex, validBookIndex, selectedChapterIndex, validChapterIndex]);
-
-    const handleNextChapter = () => {
-        if (!currentBook?.chapters || !currentBible?.books) return;
-
-        if (validChapterIndex < currentBook.chapters.length - 1) {
-            setSelectedChapterIndex(validChapterIndex + 1);
-        } else if (validBookIndex < currentBible.books.length - 1) {
-            setSelectedBookIndex(validBookIndex + 1);
-            setSelectedChapterIndex(0);
-        }
-    };
-
-    const handlePrevChapter = () => {
-        if (validChapterIndex > 0) {
-            setSelectedChapterIndex(validChapterIndex - 1);
-        } else if (validBookIndex > 0) {
-            const prevBookIndex = validBookIndex - 1;
-            const prevBook = currentBible.books?.[prevBookIndex];
-            if (prevBook?.chapters) {
-                setSelectedBookIndex(prevBookIndex);
-                setSelectedChapterIndex(prevBook.chapters.length - 1);
-            }
-        }
-    };
 
     const renderNavModal = () => {
         if (!currentBible || !currentBible.books || !Array.isArray(currentBible.books)) {
@@ -929,13 +325,6 @@ export default function BibleScreen() {
                 )
             }
 
-
-
-
-            {renderBookmarksModal()}
-
-
-
             {
                 hasValidData ? (
                     <ScrollView
@@ -953,7 +342,7 @@ export default function BibleScreen() {
                                 ]}
                                 activeOpacity={0.6}
                                 onPress={(e) => {
-                                    const { pageY, locationX, locationY } = e.nativeEvent;
+                                    const { pageY } = e.nativeEvent;
                                     // Simple logic: if click is in top 60% of screen, show below. Else show above.
                                     const screenHeight = Dimensions.get('window').height;
                                     const isTop = pageY < screenHeight * 0.6;
@@ -1012,7 +401,26 @@ export default function BibleScreen() {
 
             {renderNavModal()}
             {renderNavModal()}
-            {renderSettingsModal()}
+            <BibleSettingsModal
+                visible={isSettingsVisible}
+                onClose={() => setIsSettingsVisible(false)}
+                baseFontSize={baseFontSize}
+                onZoom={handleZoom}
+                onOpenBookmarks={() => {
+                    setIsSettingsVisible(false);
+                    setTimeout(() => setIsBookmarksVisible(true), 300);
+                }}
+                selectedVersion={selectedVersion}
+                onSelectVersion={setSelectedVersion}
+                bibleVersions={BIBLE_VERSIONS}
+            />
+            <BibleBookmarksModal
+                visible={isBookmarksVisible}
+                onClose={() => setIsBookmarksVisible(false)}
+                bookmarks={bookmarks}
+                onGoToBookmark={goToBookmark}
+                onDeleteBookmark={deleteBookmark}
+            />
 
             <Modal
                 transparent={true}

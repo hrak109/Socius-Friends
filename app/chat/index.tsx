@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocalSearchParams } from 'expo-router';
-import ChatInterface from '../../components/ChatInterface';
+import ChatInterface from '@/components/features/chat/ChatInterface';
 
 export default function SociusChatScreen() {
     const { context } = useLocalSearchParams<{
@@ -12,7 +12,7 @@ export default function SociusChatScreen() {
 
     return (
         <ChatInterface
-            context={chatContext}
+            topic={chatContext}
         />
     );
 }

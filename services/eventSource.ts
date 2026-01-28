@@ -7,7 +7,7 @@ type NotificationEvent = {
     data?: {
         id?: number;
         content?: string;
-        context?: string;
+        topic?: string;
         sender_id?: number;
         created_at?: string;
     };

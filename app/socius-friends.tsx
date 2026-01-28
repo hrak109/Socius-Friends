@@ -13,10 +13,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, Stack, useFocusEffect } from 'expo-router';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
-import { useTheme } from '../context/ThemeContext';
-import { useLanguage } from '../context/LanguageContext';
-import api from '../services/api';
-import { SOCIUS_AVATAR_MAP } from '../constants/avatars';
+import { useTheme } from '@/context/ThemeContext';
+import { useLanguage } from '@/context/LanguageContext';
+import api from '@/services/api';
+import { SOCIUS_AVATAR_MAP } from '@/constants/avatars';
 import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
 
 interface SociusFriend {

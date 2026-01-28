@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, FlatList, TextInput, Image, Modal, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../context/ThemeContext';
-import { useNotifications } from '../context/NotificationContext';
-import { useLanguage } from '../context/LanguageContext';
+import { useTheme } from '@/context/ThemeContext';
+import { useNotifications } from '@/context/NotificationContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { useRouter, Stack } from 'expo-router';
-import api from '../services/api';
-import { PROFILE_AVATAR_MAP } from '../constants/avatars';
+import api from '@/services/api';
+import { PROFILE_AVATAR_MAP } from '@/constants/avatars';
 
 type FriendItem = {
     id: number;

@@ -3,10 +3,10 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Dimensions, Image, RefreshControl } from 'react-native';
 import { Stack, useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../context/ThemeContext';
-import { useLanguage } from '../context/LanguageContext';
-import api from '../services/api';
-import { SOCIUS_AVATAR_MAP } from '../constants/avatars';
+import { useTheme } from '@/context/ThemeContext';
+import { useLanguage } from '@/context/LanguageContext';
+import api from '@/services/api';
+import { SOCIUS_AVATAR_MAP } from '@/constants/avatars';
 
 const { width } = Dimensions.get('window');
 

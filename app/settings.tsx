@@ -5,9 +5,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useTheme } from '../context/ThemeContext';
-import { useSession } from '../context/AuthContext';
-import { useLanguage } from '../context/LanguageContext';
+import { useTheme } from '@/context/ThemeContext';
+import { useSession } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
+import api from '@/services/api';
 
 export default function SettingsScreen() {
     const router = useRouter();

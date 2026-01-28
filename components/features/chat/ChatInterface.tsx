@@ -1,0 +1,408 @@
+import { Ionicons } from '@expo/vector-icons';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Image, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View, Alert, Keyboard } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Avatar, Bubble, GiftedChat } from 'react-native-gifted-chat';
+import * as Clipboard from 'expo-clipboard';
+import * as Haptics from 'expo-haptics';
+import TypingIndicator from '@/components/features/chat/widgets/TypingIndicator';
+import { useTheme } from '@/context/ThemeContext';
+import { useLanguage } from '@/context/LanguageContext';
+import { PROFILE_AVATAR_MAP, SOCIUS_AVATAR_MAP } from '@/constants/avatars';
+import { renderMessageWidgets } from '@/components/features/chat/MessageWidgets';
+import { useChat } from '@/hooks/useChat';
+
+const SociusAvatar = ({ source }: { source: any }) => {
+    const { colors } = useTheme();
+    return (
+        <View style={[styles.botAvatarContainer, { backgroundColor: colors.inputBackground }]}>
+            <Image
+                source={source}
+                style={styles.botAvatarImage}
+            />
+        </View>
+    );
+};
+
+interface ChatInterfaceProps {
+    onClose?: () => void;
+    isModal?: boolean;
+    initialMessage?: string;
+    topic?: string; // NEW: Topic/Context support
+    friendId?: number; // NEW: For DM chats with users
+    companionId?: number; // NEW: For specific Socius companions
+
+    friendName?: string; // NEW: Name of friend/bot
+    friendAvatar?: string; // NEW: Avatar key/url of friend/bot
+    showHeader?: boolean; // NEW: Should show header
+}
+
+export default function ChatInterface({ onClose, isModal = false, initialMessage = '', topic = 'global', friendId, companionId, friendName, friendAvatar, showHeader = true }: ChatInterfaceProps) {
+    const { colors } = useTheme();
+    const { t, language } = useLanguage();
+    const { messages, text, setText, onSend, isTyping, isWaitingForResponse, currentUser } = useChat({
+        topic, friendId, companionId, friendName, friendAvatar, initialMessage
+    });
+    const textInputRef = useRef<any>(null);
+
+    // UI Layout State
+    const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+    const insets = useSafeAreaInsets();
+
+    useEffect(() => {
+        const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+        const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+        const showListener = Keyboard.addListener(showEvent, () => setKeyboardVisible(true));
+        const hideListener = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
+
+        return () => {
+            showListener.remove();
+            hideListener.remove();
+        };
+    }, []);
+
+
+
+
+
+
+
+    const renderCustomView = useCallback(() => {
+        return null; // Moved to renderMessageText to ensure bottom position
+    }, []);
+
+
+    const renderBubble = useCallback((props: any) => (
+        <Bubble
+            {...props}
+            wrapperStyle={{
+                left: { backgroundColor: colors.inputBackground, borderRadius: 15 },
+                right: { backgroundColor: colors.primary, borderRadius: 15 }
+            }}
+            textStyle={{
+                left: { color: colors.text },
+                right: { color: colors.buttonText }
+            }}
+            renderCustomView={renderCustomView}
+            renderMessageText={renderMessageWidgets}
+        />
+    ), [colors, renderCustomView]);
+
+    const renderDay = useCallback((props: any) => {
+        // DayAnimated passes createdAt directly (as timestamp), inline passes via currentMessage
+        const createdAt = props.createdAt || props.currentMessage?.createdAt;
+        if (!createdAt) return null;
+
+        // Handle both timestamp number and Date/string formats
+        const date = typeof createdAt === 'number' ? new Date(createdAt) : new Date(createdAt);
+        if (isNaN(date.getTime())) return null;
+
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        let dateText = '';
+        if (date.toDateString() === today.toDateString()) {
+            dateText = t('common.today') || 'Today';
+        } else if (date.toDateString() === yesterday.toDateString()) {
+            dateText = t('common.yesterday') || 'Yesterday';
+        } else {
+            // Use locale-appropriate date format
+            if (language === 'ko') {
+                const month = date.getMonth() + 1;
+                const day = date.getDate();
+                dateText = `${month}월 ${day}일`;
+            } else {
+                dateText = date.toLocaleDateString('en-US', {
+                    month: 'long',
+                    day: 'numeric',
+                });
+            }
+        }
+
+        // For inline days only: check if we should skip (same day as previous)
+        // Don't skip for DayAnimated (when there's no currentMessage)
+        if (props.currentMessage && props.previousMessage?.createdAt) {
+            const prevDate = new Date(props.previousMessage.createdAt);
+            if (prevDate.toDateString() === date.toDateString()) {
+                return null; // Same day, don't show date
+            }
+        }
+
+        return (
+            <View style={{ alignItems: 'center', marginVertical: 10 }}>
+                <View style={{
+                    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 12
+                }}>
+                    <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '600' }}>
+                        {dateText}
+                    </Text>
+                </View>
+            </View>
+        );
+    }, [t, language]);
+
+    // Custom input toolbar to fix iOS 26 keyboard input issues
+    const renderInputToolbar = () => (
+        <View style={[styles.customInputToolbar, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
+            <TextInput
+                ref={textInputRef}
+                style={[styles.customTextInput, {
+                    backgroundColor: isWaitingForResponse ? colors.card : colors.inputBackground, // Visual feedback
+                    color: isWaitingForResponse ? colors.textSecondary : colors.text
+                }]}
+                placeholder={isWaitingForResponse ? t('chat.thinking') || "Socius is thinking..." : t('chat.placeholder')}
+                placeholderTextColor={colors.textSecondary}
+                value={text}
+                onChangeText={setText}
+                multiline
+                textAlignVertical="center"
+                returnKeyType="default"
+                blurOnSubmit={false}
+                editable={!isWaitingForResponse} // Disable input
+            />
+            <TouchableOpacity
+                testID="send-button"
+                style={[styles.customSendButton, { backgroundColor: (!text.trim() || isWaitingForResponse) ? colors.border : '#007AFF' }]}
+                onPress={() => {
+                    if (text.trim()) {
+                        onSend([{
+                            _id: Math.round(Math.random() * 1000000),
+                            text: text.trim(),
+                            createdAt: new Date(),
+                            user: currentUser
+                        }]);
+                    }
+                }}
+                disabled={!text.trim() || isWaitingForResponse} // Disable button
+            >
+                <Ionicons name="send" size={20} color={(!text.trim() || isWaitingForResponse) ? colors.textSecondary : '#FFFFFF'} />
+            </TouchableOpacity>
+        </View>
+    );
+
+    const renderAvatar = (props: any) => {
+        if (props.currentMessage?.user?._id === 1) {
+            // User Avatar Logic now simplified since useChat provides the user object partially,
+            // but GiftedChat renderAvatar might need the full object or we just rely on props.
+            // The logic below was complex, let's trust what useChat provides or fallbacks here.
+
+            // Actually, we can just let GiftedChat handle it if the user object is correct.
+            // But if we want custom mapping/overrides:
+            // But if we want custom mapping/overrides:
+            return (
+                <Avatar
+                    {...props}
+                    imageStyle={{ left: styles.userAvatar, right: styles.userAvatar }}
+                />
+            );
+        }
+
+        // OTHER USER/BOT AVATAR LOGIC
+        // 1. Try PROFILE_AVATAR_MAP (for user friends with custom avatars)
+        // 2. Try SOCIUS_AVATAR_MAP (for Socius companions)
+        // 3. Try as URL (for Google photos)
+        // 4. Fallback to default
+
+        let source;
+        if (friendAvatar && PROFILE_AVATAR_MAP[friendAvatar]) {
+            source = PROFILE_AVATAR_MAP[friendAvatar];
+        } else if (friendAvatar && SOCIUS_AVATAR_MAP[friendAvatar]) {
+            source = SOCIUS_AVATAR_MAP[friendAvatar];
+        } else if (friendAvatar && friendAvatar.startsWith('http')) {
+            source = { uri: friendAvatar };
+        } else {
+            source = SOCIUS_AVATAR_MAP['socius-avatar-0']; // Default
+        }
+
+        return <SociusAvatar source={source} />;
+    };
+
+    return (
+        <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? (showHeader ? 120 : 120) : 0}
+        >
+            <SafeAreaView
+                style={[styles.container, { backgroundColor: colors.background }]}
+                edges={['left', 'right']}
+            >
+                {showHeader && (
+                    <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+                        {onClose ? (
+                            <TouchableOpacity onPress={onClose} style={styles.backButton}>
+                                {isModal ? (
+                                    <Ionicons name="close" size={24} color={colors.text} />
+                                ) : (
+                                    <Ionicons name="arrow-back" size={24} color={colors.text} />
+                                )}
+                            </TouchableOpacity>
+                        ) : (
+                            <View style={{ width: 40 }} />
+                        )}
+                        <Text style={[styles.headerTitle, { color: colors.text }]}>
+                            {topic && topic !== 'global'
+                                ? `${t('chat.title')} (${topic.charAt(0).toUpperCase() + topic.slice(1)})`
+                                : t('chat.title')}
+                        </Text>
+                        <View style={{ width: 40 }} />
+                    </View>
+                )}
+
+                <GiftedChat
+                    messages={messages}
+                    text={text}
+                    textInputRef={textInputRef}
+                    onInputTextChanged={setText}
+                    onSend={(messages) => onSend(messages)}
+                    user={currentUser}
+                    isTyping={isTyping}
+                    locale={language}
+                    {...{ isDayAnimationEnabled: false } as any}
+                    renderBubble={renderBubble}
+                    renderAvatar={renderAvatar}
+                    renderDay={renderDay}
+                    renderInputToolbar={renderInputToolbar}
+                    renderFooter={() => {
+                        if (!isTyping) return null;
+
+                        let source;
+                        if (friendAvatar && PROFILE_AVATAR_MAP[friendAvatar]) {
+                            source = PROFILE_AVATAR_MAP[friendAvatar];
+                        } else if (friendAvatar && SOCIUS_AVATAR_MAP[friendAvatar]) {
+                            source = SOCIUS_AVATAR_MAP[friendAvatar];
+                        } else if (friendAvatar && friendAvatar.startsWith('http')) {
+                            source = { uri: friendAvatar };
+                        } else {
+                            source = SOCIUS_AVATAR_MAP['socius-avatar-0'];
+                        }
+
+                        return (
+                            <View style={{ flexDirection: 'row', alignItems: 'flex-end', margin: 10, marginLeft: 14 }}>
+                                <SociusAvatar source={source} />
+                                <View style={{
+                                    backgroundColor: colors.inputBackground,
+                                    marginLeft: 8,
+                                    padding: 10,
+                                    borderRadius: 15,
+                                    borderBottomLeftRadius: 0
+                                }}>
+                                    <TypingIndicator color={colors.textSecondary} />
+                                </View>
+                            </View>
+                        );
+                    }}
+                    placeholder={t('chat.placeholder')}
+                    showUserAvatar={true}
+                    alwaysShowSend
+                    isScrollToBottomEnabled
+                    renderUsernameOnMessage={true}
+                    timeTextStyle={{
+                        left: { color: colors.textSecondary },
+                        right: { color: 'rgba(255, 255, 255, 0.7)' }
+                    }}
+                    keyboardShouldPersistTaps="handled"
+                    bottomOffset={Platform.OS === 'ios' && !isKeyboardVisible ? insets.bottom : 0}
+                    dateFormat={language === 'ko' ? 'D일 M월' : 'MMMM D'}
+                    dateFormatCalendar={{
+                        sameDay: language === 'ko' ? `[${t('common.today') || '오늘'}]` : '[Today]',
+                        lastDay: language === 'ko' ? `[${t('common.yesterday') || '어제'}]` : '[Yesterday]',
+                        lastWeek: language === 'ko' ? 'M[월] D[일]' : 'MMMM D',
+                        sameElse: language === 'ko' ? 'M[월] D[일]' : 'MMMM D',
+                    }}
+
+                    onLongPress={(context, message) => {
+                        if (message.text) {
+                            Clipboard.setStringAsync(message.text);
+                            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                            Alert.alert(t('common.success') || 'Success', t('chat.copy_success') || 'Text copied to clipboard');
+                        }
+                    }}
+                    listViewProps={{
+                        removeClippedSubviews: Platform.OS === 'android',
+                        initialNumToRender: 8,
+                        maxToRenderPerBatch: 4,
+                        windowSize: 3,
+                        updateCellsBatchingPeriod: 150,
+                        nestedScrollEnabled: true,
+                        scrollEventThrottle: 16,
+                    } as any}
+                    shouldUpdateMessage={(props, nextProps) =>
+                        props.currentMessage._id !== nextProps.currentMessage._id
+                    }
+                />
+            </SafeAreaView>
+        </KeyboardAvoidingView>
+    );
+}
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+    },
+    header: {
+        padding: 10,
+        borderBottomWidth: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        height: 56,
+    },
+    headerTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    backButton: {
+        padding: 8,
+    },
+    clearButton: {
+        padding: 8,
+    },
+    userAvatar: {
+        borderRadius: 18,
+        width: 36,
+        height: 36,
+    },
+    botAvatarContainer: {
+        width: 36,
+        height: 36,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 18,
+    },
+    botAvatarImage: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+    },
+    customInputToolbar: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        borderTopWidth: 1,
+    },
+    customTextInput: {
+        flex: 1,
+        minHeight: 40,
+        maxHeight: 120,
+        borderRadius: 20,
+        paddingHorizontal: 16,
+        paddingTop: 10,
+        paddingBottom: 10,
+        fontSize: 16,
+        marginRight: 10,
+    },
+    customSendButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+});

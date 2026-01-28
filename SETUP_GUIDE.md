@@ -12,7 +12,8 @@ Complete guide for setting up OAuth, running tests, and deploying the app on phy
    - [iOS OAuth Configuration](#ios-oauth-configuration)
 3. [Running the App Locally](#running-the-app-locally)
 4. [Running Tests](#running-tests)
-5. [Production Build & Deployment](#production-build--deployment)
+5. [CI/CD Pipeline](#cicd-pipeline)
+6. [Production Build & Deployment](#production-build--deployment)
 
 ---
 
@@ -222,30 +223,44 @@ API endpoints are configured in [constants/env.ts](file:///home/hbb/hai-project/
 
 ## Running Tests
 
-### Unit Tests
 
 ```bash
-cd /home/hbb/hai-project/socius-friends
 npm test
 ```
 
-> [!WARNING]
-> Jest is configured in `package.json` but may need additional setup if not yet configured. If tests fail, install Jest:
-> ```bash
-> npm install --save-dev jest @types/jest ts-jest
-> ```
+For full coverage report:
+```bash
+npm run test:coverage
+```
+
+### Mocking & Setup
+Tests use **Jest** and **jest-expo**. Configuration is in `jest.config.js` and global mocks are in `jest.setup.js`.
 
 ### Linting
-
+We use strict ESLint rules to ensure code quality.
 ```bash
 npm run lint
 ```
 
 ### Type Checking
-
+Strict TypeScript verification:
 ```bash
-npx tsc --noEmit
+npm run type-check
 ```
+
+---
+
+## CI/CD Pipeline
+
+The project includes a **Big Tech Ready** CI/CD pipeline via GitHub Actions (located in `.github/workflows/ci.yml`).
+
+Every Push and Pull Request to `main`, `master`, or `develop` triggers:
+1. **Linting**: Verifies code style.
+2. **Type Checking**: Ensures no TS errors.
+3. **Unit Tests**: Runs the full test suite with coverage.
+
+> [!TIP]
+> Always run `npm run lint && npm run type-check && npm test` locally before pushing to ensure a green CI pipeline.
 
 ---
 
@@ -331,7 +346,9 @@ open ios/SociusFriends.xcworkspace
 | Run Android | `npm run android` or `npx expo run:android --device` |
 | Run iOS | `npm run ios` or `npx expo run:ios --device` |
 | Lint | `npm run lint` |
-| Test | `npm test` |
+| Type Check | `npm run type-check` |
+| Unit Tests | `npm test` |
+| Test Coverage | `npm run test:coverage` |
 | Prebuild Android | `npx expo prebuild --platform android` |
 | Prebuild iOS | `npx expo prebuild --platform ios` |
 | EAS Build Android | `eas build --platform android` |

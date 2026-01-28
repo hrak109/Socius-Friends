@@ -3,9 +3,9 @@ import { StyleSheet, View, Text, TouchableOpacity, FlatList, Modal, TextInput, A
 import { Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../context/ThemeContext';
-import { useLanguage } from '../context/LanguageContext';
-import AppSpecificChatHead from '../components/AppSpecificChatHead';
+import { useTheme } from '@/context/ThemeContext';
+import { useLanguage } from '@/context/LanguageContext';
+import AppSpecificChatHead from '@/components/features/chat/AppSpecificChatHead';
 import { useCalories, CalorieEntry } from '../hooks/useCalories';
 
 export default function CaloriesScreen() {

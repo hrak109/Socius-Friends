@@ -5,13 +5,13 @@ import { StatusBar } from 'expo-status-bar';
 import { TouchableOpacity, Image, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { ThemeProvider, useTheme, darkColors } from '../context/ThemeContext';
-import { AuthProvider, useSession } from '../context/AuthContext';
-import { LanguageProvider, useLanguage } from '../context/LanguageContext';
-import { NotificationProvider, useNotifications } from '../context/NotificationContext';
-import { UserProfileProvider, useUserProfile } from '../context/UserProfileContext';
-import ErrorBoundary from '../components/ErrorBoundary';
-import { PROFILE_AVATAR_MAP } from '../constants/avatars';
+import { ThemeProvider, useTheme, darkColors } from '@/context/ThemeContext';
+import { AuthProvider, useSession } from '@/context/AuthContext';
+import { LanguageProvider, useLanguage } from '@/context/LanguageContext';
+import { NotificationProvider, useNotifications } from '@/context/NotificationContext';
+import { UserProfileProvider, useUserProfile } from '@/context/UserProfileContext';
+import ErrorBoundary from '@/components/ui/ErrorBoundary';
+import { PROFILE_AVATAR_MAP } from '@/constants/avatars';
 
 
 

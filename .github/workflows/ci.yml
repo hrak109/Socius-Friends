@@ -1,0 +1,56 @@
+name: Socius Friends CI
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+          cache-dependency-path: socius-friends/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./socius-friends
+        run: npm ci
+
+      - name: Run Lint
+        working-directory: ./socius-friends
+        run: npm run lint
+
+      - name: Run Type Check
+        working-directory: ./socius-friends
+        run: npm run type-check
+
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+          cache-dependency-path: socius-friends/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./socius-friends
+        run: npm ci
+
+      - name: Run Tests
+        working-directory: ./socius-friends
+        run: npm run test:coverage

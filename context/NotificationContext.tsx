@@ -13,7 +13,7 @@ interface NotificationContextType {
     unreadDirectMessages: number;
     friendRequests: number;
     lastNotificationTime: Date | null;
-    lastMessage: { id: number; context: string; content: string; timestamp: number } | null;
+    lastMessage: { id: number; topic: string; content: string; timestamp: number } | null;
     lastDM: { id: number; senderId: number; content: string; timestamp: number } | null;
     refreshNotifications: () => Promise<void>;
     setRouteSegments: (segments: string[]) => void;
@@ -44,7 +44,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     const [unreadDirectMessages, setUnreadDirectMessages] = useState(0);
     const [friendRequests, setFriendRequests] = useState(0);
     const [lastNotificationTime, setLastNotificationTime] = useState<Date | null>(null);
-    const [lastMessage, setLastMessage] = useState<{ id: number; context: string; content: string; timestamp: number } | null>(null);
+    const [lastMessage, setLastMessage] = useState<{ id: number; topic: string; content: string; timestamp: number } | null>(null);
     const [lastDM, setLastDM] = useState<{ id: number; senderId: number; content: string; timestamp: number } | null>(null);
     const [typingThreads, setTypingThreads] = useState<Set<string>>(new Set());
     const typingTimeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
@@ -63,25 +63,31 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             typingTimeoutsRef.current.delete(id);
         }
 
-        setTypingThreads(prev => {
-            const newSet = new Set(prev);
-            if (isTyping) {
+        if (isTyping) {
+            // Set 5-minute auto-clear timeout
+            const timeout = setTimeout(() => {
+                setTypingThreads(p => {
+                    const s = new Set(p);
+                    s.delete(id);
+                    return s;
+                });
+                typingTimeoutsRef.current.delete(id);
+            }, 5 * 60 * 1000); // 5 minutes
+
+            typingTimeoutsRef.current.set(id, timeout);
+
+            setTypingThreads(prev => {
+                const newSet = new Set(prev);
                 newSet.add(id);
-                // Set 20-minute auto-clear timeout
-                const timeout = setTimeout(() => {
-                    setTypingThreads(p => {
-                        const s = new Set(p);
-                        s.delete(id);
-                        return s;
-                    });
-                    typingTimeoutsRef.current.delete(id);
-                }, 20 * 60 * 1000); // 20 minutes
-                typingTimeoutsRef.current.set(id, timeout);
-            } else {
+                return newSet;
+            });
+        } else {
+            setTypingThreads(prev => {
+                const newSet = new Set(prev);
                 newSet.delete(id);
-            }
-            return newSet;
-        });
+                return newSet;
+            });
+        }
     }, []);
 
     const refreshNotifications = useCallback(async () => {
@@ -187,10 +193,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
                     (event) => {
                         if (event.type === 'message') {
                             // New Socius message arrived
-                            const context = event.data?.context;
-                            if (context) {
+                            const topic = event.data?.topic;
+                            if (topic) {
                                 // Clear typing status for this thread
-                                setTyping(context, false);
+                                setTyping(topic, false);
 
                                 // Also handle full ID if it starts with socius-
                                 if (event.data?.sender_id) {
@@ -201,7 +207,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
                             setLastNotificationTime(new Date());
                             setLastMessage({
                                 id: event.data?.id || Date.now(),
-                                context: event.data?.context || 'global',
+                                topic: event.data?.topic || 'global',
                                 content: event.data?.content || '',
                                 timestamp: Date.now()
                             });

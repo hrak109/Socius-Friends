@@ -3,12 +3,12 @@ import { StyleSheet, View, Text, TextInput, TouchableOpacity, Image, Alert, Scro
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import api from '../services/api';
-import { useSession } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
-import { useLanguage } from '../context/LanguageContext';
-import { useUserProfile } from '../context/UserProfileContext';
-import { PROFILE_AVATARS } from '../constants/avatars';
+import api from '@/services/api';
+import { useSession } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
+import { useLanguage } from '@/context/LanguageContext';
+import { useUserProfile } from '@/context/UserProfileContext';
+import { PROFILE_AVATAR_MAP, PROFILE_AVATARS } from '@/constants/avatars';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 export default function ProfileScreen() {

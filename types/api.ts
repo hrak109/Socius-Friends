@@ -16,11 +16,11 @@ export interface TokenResponse {
 
 export interface ChatMessage {
     id: number;
-    role: 'user' | 'assistant';
+    message_author: 'user' | 'assistant';
     content: string;
-    model: string;
-    context: string;
+    topic: string;
     created_at: string; // ISO date string
+    role?: 'user' | 'assistant'; // Backwards compatibility
 }
 
 export interface AskResponse {

@@ -1,0 +1,160 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ChatInterface renders correctly 1`] = `
+<View
+  onLayout={[Function]}
+  style={
+    [
+      {
+        "flex": 1,
+      },
+      {
+        "paddingBottom": 0,
+      },
+    ]
+  }
+>
+  <View
+    style={
+      [
+        {
+          "alignItems": "center",
+          "borderBottomWidth": 1,
+          "flexDirection": "row",
+          "height": 56,
+          "justifyContent": "space-between",
+          "padding": 10,
+        },
+        {
+          "backgroundColor": undefined,
+          "borderBottomColor": undefined,
+        },
+      ]
+    }
+  >
+    <View
+      style={
+        {
+          "width": 40,
+        }
+      }
+    />
+    <Text
+      style={
+        [
+          {
+            "fontSize": 18,
+            "fontWeight": "bold",
+          },
+          {
+            "color": "#000",
+          },
+        ]
+      }
+    >
+      chat.title
+    </Text>
+    <View
+      style={
+        {
+          "width": 40,
+        }
+      }
+    />
+  </View>
+  <div
+    testID="gifted-chat"
+  >
+    <View
+      style={
+        [
+          {
+            "alignItems": "flex-end",
+            "borderTopWidth": 1,
+            "flexDirection": "row",
+            "paddingHorizontal": 10,
+            "paddingVertical": 8,
+          },
+          {
+            "backgroundColor": undefined,
+            "borderTopColor": undefined,
+          },
+        ]
+      }
+    >
+      <TextInput
+        blurOnSubmit={false}
+        editable={true}
+        multiline={true}
+        onChangeText={[MockFunction]}
+        placeholder="chat.placeholder"
+        returnKeyType="default"
+        style={
+          [
+            {
+              "borderRadius": 20,
+              "flex": 1,
+              "fontSize": 16,
+              "marginRight": 10,
+              "maxHeight": 120,
+              "minHeight": 40,
+              "paddingBottom": 10,
+              "paddingHorizontal": 16,
+              "paddingTop": 10,
+            },
+            {
+              "backgroundColor": undefined,
+              "color": "#000",
+            },
+          ]
+        }
+        textAlignVertical="center"
+        value=""
+      />
+      <View
+        accessibilityState={
+          {
+            "busy": undefined,
+            "checked": undefined,
+            "disabled": true,
+            "expanded": undefined,
+            "selected": undefined,
+          }
+        }
+        accessibilityValue={
+          {
+            "max": undefined,
+            "min": undefined,
+            "now": undefined,
+            "text": undefined,
+          }
+        }
+        accessible={true}
+        collapsable={false}
+        focusable={false}
+        onClick={[Function]}
+        onResponderGrant={[Function]}
+        onResponderMove={[Function]}
+        onResponderRelease={[Function]}
+        onResponderTerminate={[Function]}
+        onResponderTerminationRequest={[Function]}
+        onStartShouldSetResponder={[Function]}
+        style={
+          {
+            "alignItems": "center",
+            "backgroundColor": undefined,
+            "borderRadius": 20,
+            "height": 40,
+            "justifyContent": "center",
+            "opacity": 1,
+            "width": 40,
+          }
+        }
+        testID="send-button"
+      >
+        <Text />
+      </View>
+    </View>
+  </div>
+</View>
+`;

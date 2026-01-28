@@ -15,10 +15,10 @@ import { Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
-import { useWorkouts, Activity, PhysicalStats, ActivityLevel } from '../hooks/useWorkouts';
-import { useTheme } from '../context/ThemeContext';
-import { useLanguage } from '../context/LanguageContext';
-import AppSpecificChatHead from '../components/AppSpecificChatHead';
+import { useWorkouts, Activity, PhysicalStats, ActivityLevel } from '@/hooks/useWorkouts';
+import { useTheme } from '@/context/ThemeContext';
+import { useLanguage } from '@/context/LanguageContext';
+import AppSpecificChatHead from '@/components/features/chat/AppSpecificChatHead';
 
 // Activity level multipliers (Harris-Benedict)
 const ACTIVITY_LEVELS: { key: ActivityLevel; multiplier: number; }[] = [

@@ -17,11 +17,11 @@ import {
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../context/ThemeContext';
-import { useUserProfile } from '../../context/UserProfileContext';
-import { useLanguage } from '../../context/LanguageContext';
-import { SOCIUS_AVATAR_MAP } from '../../constants/avatars';
-import api from '../../services/api';
+import { useTheme } from '@/context/ThemeContext';
+import { useUserProfile } from '@/context/UserProfileContext';
+import { useLanguage } from '@/context/LanguageContext';
+import { SOCIUS_AVATAR_MAP } from '@/constants/avatars';
+import api from '@/services/api';
 
 const { width } = Dimensions.get('window');
 

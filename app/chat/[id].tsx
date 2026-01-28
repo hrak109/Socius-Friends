@@ -1,9 +1,9 @@
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import ChatInterface from '../../components/ChatInterface';
-import { useTheme } from '../../context/ThemeContext';
-import { useLanguage } from '../../context/LanguageContext';
+import ChatInterface from '@/components/features/chat/ChatInterface';
+import { useTheme } from '@/context/ThemeContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function ChatScreen() {
     const router = useRouter();
@@ -18,10 +18,10 @@ export default function ChatScreen() {
     }>();
     const { id, type, name, avatar, sociusRole, initialText } = params;
 
-    // Determine context based on type
+    // Determine topic based on type
     const isSocius = type === 'socius';
-    // Use the ID as context for socius to keep conversations separate (e.g., socius-1, socius-2)
-    const context = isSocius ? id : 'dm';
+    // Use the ID as topic for socius to keep conversations separate (e.g., socius-1, socius-2)
+    const topic = isSocius ? id : 'dm';
     const friendId = type === 'user' ? parseInt(id.replace('user-', '')) : undefined;
 
     // Extract companion ID if it's a custom socius friend
@@ -91,7 +91,7 @@ export default function ChatScreen() {
             />
             <ChatInterface
                 key={`${id}-${params.initialText || ''}`}
-                context={context}
+                topic={topic}
                 friendId={friendId}
                 companionId={companionId}
 

@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, FlatList, TextInput, ActivityIndicator, Modal, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '@/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import api from '../services/api';
-import { useLanguage } from '../context/LanguageContext';
-import { useDebounce } from '../hooks/useDebounce';
+import api from '@/services/api';
+import { useLanguage } from '@/context/LanguageContext';
+import { useDebounce } from '@/hooks/useDebounce';
 
 type DiaryEntry = {
     id: string;

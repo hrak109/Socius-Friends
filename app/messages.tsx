@@ -12,17 +12,17 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { useTheme } from '../context/ThemeContext';
-import { useSession } from '../context/AuthContext';
-import { useNotifications } from '../context/NotificationContext';
-import { useLanguage } from '../context/LanguageContext';
-import { SOCIUS_AVATAR_MAP, PROFILE_AVATAR_MAP } from '../constants/avatars';
-import api from '../services/api';
+import { useTheme } from '@/context/ThemeContext';
+import { useSession } from '@/context/AuthContext';
+import { useNotifications } from '@/context/NotificationContext';
+import { useLanguage } from '@/context/LanguageContext';
+import { SOCIUS_AVATAR_MAP, PROFILE_AVATAR_MAP } from '@/constants/avatars';
+import api from '@/services/api';
 import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import TypingIndicator from '../components/TypingIndicator';
-import { getCachedThreads, cacheThreads, CachedThread } from '../services/ChatCache';
-import { DraggableAppsGrid } from '../components/DraggableAppsGrid';
+import TypingIndicator from '@/components/features/chat/widgets/TypingIndicator';
+import { getCachedThreads, cacheThreads, CachedThread } from '@/services/ChatCache';
+import { DraggableAppsGrid } from '@/components/features/home/DraggableAppsGrid';
 
 const APPS_ORDER_KEY = 'user_apps_order_v1';
 

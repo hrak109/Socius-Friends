@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getToken, removeToken, saveToken } from '../services/auth';
 import { GoogleSignin, User } from '@react-native-google-signin/google-signin';
 
@@ -85,6 +86,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(null);
         setUser(null);
         await removeToken();
+        await AsyncStorage.clear(); // Wipe all app data on logout
         try {
             await GoogleSignin.signOut();
         } catch (error) {

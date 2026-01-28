@@ -4,10 +4,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
-import { useTheme } from '../context/ThemeContext';
-import { useLanguage } from '../context/LanguageContext';
-import { usePasswords, PasswordAccount } from '../hooks/usePasswords';
-import AppSpecificChatHead from '../components/AppSpecificChatHead';
+import { useTheme } from '@/context/ThemeContext';
+import { useLanguage } from '@/context/LanguageContext';
+import { usePasswords, PasswordAccount } from '@/hooks/usePasswords';
+import AppSpecificChatHead from '@/components/features/chat/AppSpecificChatHead';
 
 const GROUPS = ['social', 'work', 'personal', 'finance', 'other'];
 export default function PasswordsScreen() {
