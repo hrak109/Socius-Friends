@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, TextInput, ActivityIndicator, Modal, KeyboardAvoidingView, Platform, Alert, Keyboard, ScrollView, Dimensions } from 'react-native';
-import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
+import { DraggableNoteGrid } from '../components/features/notes/DraggableNoteGrid';
 
 const { width } = Dimensions.get('window');
 const COLUMN_WIDTH = (width - 40) / 2; // 16px side margins + 8px gap
@@ -178,39 +178,33 @@ export default function NotesScreen() {
         }
     };
 
-    const renderDraggableItem = ({ item, drag, isActive }: RenderItemParams<NoteEntry>) => (
-        <ScaleDecorator>
-            <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={() => startEditing(item)}
-                onLongPress={drag}
-                disabled={isActive}
-                style={[
-                    styles.noteCard,
-                    {
-                        backgroundColor: colors.card,
-                        shadowColor: isDark ? '#000' : '#888',
-                        opacity: isActive ? 0.8 : 1,
-                        transform: [{ scale: isActive ? 1.05 : 1 }]
-                    }
-                ]}
-            >
-                <View style={styles.noteHeader}>
-                    <Text style={[styles.noteTitle, { color: colors.text, flex: 1 }]} numberOfLines={2}>
-                        {item.title || 'Untitled'}
-                    </Text>
-                    <Ionicons name="menu" size={20} color={colors.textSecondary} style={{ opacity: 0.5 }} />
-                </View>
-                <Text style={[styles.notePreview, { color: colors.textSecondary }]} numberOfLines={4}>
-                    {item.content}
+    const renderNoteItem = (item: NoteEntry) => (
+        <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => startEditing(item)}
+            style={[
+                styles.noteCard,
+                {
+                    backgroundColor: colors.card,
+                    shadowColor: isDark ? '#000' : '#888',
+                }
+            ]}
+        >
+            <View style={styles.noteHeader}>
+                <Text style={[styles.noteTitle, { color: colors.text, flex: 1 }]} numberOfLines={2}>
+                    {item.title || 'Untitled'}
                 </Text>
-                <View style={styles.noteFooter}>
-                    <Text style={[styles.noteDate, { color: colors.textSecondary }]}>
-                        {new Date(item.updated_at || item.created_at).toLocaleDateString(language === 'ko' ? 'ko-KR' : 'en-US', { month: 'short', day: 'numeric' })}
-                    </Text>
-                </View>
-            </TouchableOpacity>
-        </ScaleDecorator>
+                <Ionicons name="menu" size={20} color={colors.textSecondary} style={{ opacity: 0.5 }} />
+            </View>
+            <Text style={[styles.notePreview, { color: colors.textSecondary }]} numberOfLines={4}>
+                {item.content}
+            </Text>
+            <View style={styles.noteFooter}>
+                <Text style={[styles.noteDate, { color: colors.textSecondary }]}>
+                    {new Date(item.updated_at || item.created_at).toLocaleDateString(language === 'ko' ? 'ko-KR' : 'en-US', { month: 'short', day: 'numeric' })}
+                </Text>
+            </View>
+        </TouchableOpacity>
     );
 
 
@@ -253,15 +247,11 @@ export default function NotesScreen() {
                         <ActivityIndicator size="large" color={colors.primary} />
                     </View>
                 ) : (
-                    <DraggableFlatList
+                    <DraggableNoteGrid
                         data={filteredEntries}
-                        onDragEnd={({ data }) => handleReorder(data)}
-                        keyExtractor={(item) => item.id}
-                        renderItem={renderDraggableItem}
+                        onOrderChange={handleReorder}
+                        renderItem={renderNoteItem}
                         contentContainerStyle={styles.scrollContent}
-                        showsVerticalScrollIndicator={false}
-                        numColumns={2}
-                        columnWrapperStyle={styles.columnWrapper}
                         ListEmptyComponent={
                             <View style={styles.emptyState}>
                                 <Ionicons name="document-text-outline" size={64} color={colors.textSecondary} style={{ opacity: 0.5 }} />
@@ -385,7 +375,6 @@ const styles = StyleSheet.create({
     noteCard: {
         borderRadius: 16,
         padding: 16,
-        marginBottom: 12,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 8,

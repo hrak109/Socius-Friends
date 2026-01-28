@@ -44,7 +44,7 @@ export default function CaloriesScreen() {
             setCalories('');
             setEditingEntry(null);
             setModalVisible(false);
-        } catch (e) {
+        } catch (_e) {
             Alert.alert(t('common.error'), 'Failed to save entry');
         }
     };
@@ -138,7 +138,6 @@ export default function CaloriesScreen() {
         );
     }
 
-    const totalCalories = entries.reduce((sum, item) => sum + item.calories, 0);
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>

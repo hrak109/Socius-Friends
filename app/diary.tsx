@@ -26,7 +26,6 @@ export default function DiaryScreen() {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editContent, setEditContent] = useState('');
     const [editTitle, setEditTitle] = useState('');
-    const [isSavingEdit, setIsSavingEdit] = useState(false);
     const [isAutosaving, setIsAutosaving] = useState(false);
 
     const debouncedTitle = useDebounce(editTitle, 1000);
@@ -45,17 +44,6 @@ export default function DiaryScreen() {
         };
     }, []);
 
-    const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-
-    const toggleExpand = (id: string) => {
-        const newExpanded = new Set(expandedIds);
-        if (newExpanded.has(id)) {
-            newExpanded.delete(id);
-        } else {
-            newExpanded.add(id);
-        }
-        setExpandedIds(newExpanded);
-    };
 
     const fetchEntries = async () => {
         try {
@@ -74,11 +62,6 @@ export default function DiaryScreen() {
     }, []);
 
 
-    const startEditing = (entry: DiaryEntry) => {
-        setEditingId(entry.id);
-        setEditContent(entry.content);
-        setEditTitle(entry.title || '');
-    };
 
     const cancelEditing = () => {
         setEditingId(null);
@@ -90,7 +73,6 @@ export default function DiaryScreen() {
         if (editContent.trim() === '') return;
 
         if (silent) setIsAutosaving(true);
-        else setIsSavingEdit(true);
 
         try {
             const res = await api.put(`/diary/${id}`, {
@@ -106,7 +88,6 @@ export default function DiaryScreen() {
             console.error('Failed to update diary entry:', error);
         } finally {
             if (silent) setIsAutosaving(false);
-            else setIsSavingEdit(false);
         }
     };
 
@@ -155,8 +136,6 @@ export default function DiaryScreen() {
     }, [debouncedTitle, debouncedContent]);
 
     const renderTimelineItem = ({ item, index }: { item: DiaryEntry; index: number }) => {
-        const isEditing = editingId === item.id;
-        const isExpanded = expandedIds.has(item.id);
         const dateObj = new Date(item.date);
         const day = dateObj.toLocaleDateString('en-US', { day: 'numeric' });
         const month = dateObj.toLocaleDateString(language === 'ko' ? 'ko-KR' : 'en-US', { month: 'short' });

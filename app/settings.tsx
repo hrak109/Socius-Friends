@@ -152,7 +152,7 @@ export default function SettingsScreen() {
                             value={isTwoRow}
                             onValueChange={toggleTwoRow}
                             thumbColor={isTwoRow ? colors.primary : '#f4f3f4'}
-                            trackColor={{ false: '#767577', true: isTwoRow ? colors.primary : '#767577' }} // Use primary when active
+                            trackColor={{ false: '#767577', true: isDark ? '#3e3e3e' : colors.primary }}
                         />
                     </View>
                 </View>

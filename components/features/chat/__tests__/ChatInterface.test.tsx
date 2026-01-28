@@ -27,16 +27,19 @@ jest.mock('@/context/LanguageContext', () => ({
     useLanguage: () => ({ t: (key: string) => key, language: 'en' }),
 }));
 
-jest.mock('react-native-gifted-chat', () => ({
-    GiftedChat: (props: any) => (
-        <div testID="gifted-chat">
-            {props.renderInputToolbar && props.renderInputToolbar(props)}
-            {props.renderFooter && props.renderFooter()}
-        </div>
-    ),
-    Avatar: (props: any) => <div testID="avatar" {...props} />,
-    Bubble: (props: any) => <div testID="bubble" {...props} />,
-}));
+jest.mock('react-native-gifted-chat', () => {
+    const { View } = require('react-native');
+    return {
+        GiftedChat: (props: any) => (
+            <View testID="gifted-chat">
+                {props.renderInputToolbar && props.renderInputToolbar(props)}
+                {props.renderFooter && props.renderFooter()}
+            </View>
+        ),
+        Avatar: (props: any) => <View testID="avatar" {...props} />,
+        Bubble: (props: any) => <View testID="bubble" {...props} />,
+    };
+});
 
 jest.mock('expo-router', () => ({
     useRouter: () => ({ back: jest.fn() }),

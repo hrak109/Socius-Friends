@@ -23,6 +23,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import TypingIndicator from '@/components/features/chat/widgets/TypingIndicator';
 import { getCachedThreads, cacheThreads, CachedThread } from '@/services/ChatCache';
 import { DraggableAppsGrid } from '@/components/features/home/DraggableAppsGrid';
+import { stripJsonBlocks } from '@/utils/string';
 
 const APPS_ORDER_KEY = 'user_apps_order_v1';
 
@@ -54,7 +55,7 @@ interface ChatThread {
 export default function MessagesScreen() {
     const router = useRouter();
     const { colors } = useTheme();
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
     const { session } = useSession();
     const { lastNotificationTime, typingThreads, setTyping } = useNotifications();
     const [threads, setThreads] = useState<ChatThread[]>([]);
@@ -216,7 +217,7 @@ export default function MessagesScreen() {
             console.error('Failed to load threads:', error);
             // Keep cached data if API fails
         }
-    }, []);
+    }, [setTyping]);
 
     // Refresh on screen focus
     useFocusEffect(
@@ -410,7 +411,10 @@ export default function MessagesScreen() {
                             ]}
                             numberOfLines={1}
                         >
-                            {item.lastMessage || 'Start a conversation'}
+                            {(() => {
+                                const msg = item.lastMessage || (language === 'ko' ? '대화를 시작해보세요' : 'Start a conversation');
+                                return stripJsonBlocks(msg) || (language === 'ko' ? '메시지를 보냈습니다' : 'Sent a message');
+                            })()}
                         </Text>
                     )}
                 </View>

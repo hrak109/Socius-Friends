@@ -2,7 +2,6 @@ import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ChatInterface from '@/components/features/chat/ChatInterface';
-import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
 
 export default function ChatScreen() {
