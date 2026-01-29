@@ -24,7 +24,7 @@ jest.mock('@/context/NotificationContext', () => ({
 }));
 
 jest.mock('@/context/UserProfileContext', () => ({
-    useUserProfile: jest.fn(() => ({ displayName: 'Test Display Name', displayAvatar: null })),
+    useUserProfile: jest.fn(() => ({ displayName: 'Test Display Name', displayAvatar: null, googlePhotoUrl: null })),
 }));
 
 jest.mock('@/context/LanguageContext', () => ({
@@ -65,10 +65,22 @@ describe('useChat hook', () => {
 
     it('resolves explicit "google" avatar for currentUser', () => {
         const useUserProfile = require('@/context/UserProfileContext').useUserProfile;
-        useUserProfile.mockReturnValue({ displayName: 'Test', displayAvatar: 'google' });
+        useUserProfile.mockReturnValue({ displayName: 'Test', displayAvatar: 'google', googlePhotoUrl: 'http://fresh-google.com/photo.jpg' });
 
         const { result } = renderHook(() => useChat({ message_group_id: 'default' }));
-        expect(result.current.currentUser.avatar).toEqual({ uri: 'http://google.com/photo.jpg' });
+        expect(result.current.currentUser.avatar).toEqual({ uri: 'http://fresh-google.com/photo.jpg' });
+    });
+
+    it('prioritizes googlePhotoUrl over user.photo even if displayAvatar is null (fallback path)', () => {
+        const useUserProfile = require('@/context/UserProfileContext').useUserProfile;
+        useUserProfile.mockReturnValue({
+            displayName: 'Test',
+            displayAvatar: null,
+            googlePhotoUrl: 'http://fresh-google.com/photo.jpg'
+        });
+
+        const { result } = renderHook(() => useChat({ message_group_id: 'default' }));
+        expect(result.current.currentUser.avatar).toEqual({ uri: 'http://fresh-google.com/photo.jpg' });
     });
 
     it('resolves custom avatar for currentUser', () => {

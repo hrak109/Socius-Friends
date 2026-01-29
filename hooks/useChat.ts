@@ -27,7 +27,7 @@ export function useChat({
     initialMessage?: string;
 }) {
     const { user } = useAuth();
-    const { displayName, displayAvatar } = useUserProfile();
+    const { displayName, displayAvatar, googlePhotoUrl } = useUserProfile();
     const { t } = useLanguage();
     const { refreshNotifications, lastMessage, lastDM, lastNotificationTime, setTyping, typingThreads } = useNotifications();
 
@@ -56,15 +56,17 @@ export function useChat({
     // Current User Definition
     const currentUser: User = useMemo(() => {
         let avatarSource;
-        if (displayAvatar === 'google' && user?.photo) {
-            avatarSource = { uri: user.photo };
+        if (displayAvatar === 'google') {
+            const uri = googlePhotoUrl || user?.photo;
+            if (uri) avatarSource = { uri };
         } else if (displayAvatar && PROFILE_AVATAR_MAP[displayAvatar]) {
             avatarSource = PROFILE_AVATAR_MAP[displayAvatar];
         } else if (displayAvatar && displayAvatar.startsWith('http')) {
             avatarSource = { uri: displayAvatar };
-        } else if (user?.photo) {
-            // Background fallback if nothing else set
-            avatarSource = { uri: user.photo };
+        } else {
+            // Fallback: prioritize googlePhotoUrl, then user.photo
+            const uri = googlePhotoUrl || user?.photo;
+            if (uri) avatarSource = { uri };
         }
 
         return {
