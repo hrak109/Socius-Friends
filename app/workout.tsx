@@ -422,16 +422,18 @@ export default function WorkoutScreen() {
                             <Text style={[styles.modalTitle, { color: colors.text }]}>{t('workout.add_activity')}</Text>
 
                             <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-                                <Text style={[styles.inputLabel, { color: colors.text }]}>{t('workout.activity_name')}</Text>
-                                <TextInput
-                                    style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
-                                    value={activityName}
-                                    onChangeText={setActivityName}
-                                    placeholder="Running, Gym, etc."
-                                    placeholderTextColor={colors.textSecondary}
-                                />
+                                <View style={{ marginBottom: 20 }}>
+                                    <Text style={[styles.inputLabel, { color: colors.text }]}>{t('workout.activity_name')}</Text>
+                                    <TextInput
+                                        style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+                                        value={activityName}
+                                        onChangeText={setActivityName}
+                                        placeholder="Running, Gym, etc."
+                                        placeholderTextColor={colors.textSecondary}
+                                    />
+                                </View>
 
-                                <View style={styles.inputRow}>
+                                <View style={[styles.inputRow, { marginBottom: 24 }]}>
                                     <View style={{ flex: 1 }}>
                                         <Text style={[styles.inputLabel, { color: colors.text }]}>{t('workout.duration')}</Text>
                                         <TextInput

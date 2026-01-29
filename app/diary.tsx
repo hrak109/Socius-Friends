@@ -270,8 +270,8 @@ export default function DiaryScreen() {
                 }}
             >
                 <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.background }}>
-                    <SafeAreaView style={{ flex: 1 }} edges={['bottom', 'left', 'right']}>
-                        <View style={[styles.modalHeaderBar, { paddingTop: 16 }]}>
+                    <SafeAreaView style={{ flex: 1 }}>
+                        <View style={styles.modalHeaderBar}>
                             <TouchableOpacity
                                 onPress={() => {
                                     setModalVisible(false);

@@ -306,7 +306,7 @@ export default function NotesScreen() {
             >
                 <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.background }}>
                     <SafeAreaView style={{ flex: 1 }}>
-                        <View style={[styles.modalHeaderBar, { paddingTop: 16 }]}>
+                        <View style={styles.modalHeaderBar}>
                             <TouchableOpacity
                                 onPress={() => {
                                     setModalVisible(false);
