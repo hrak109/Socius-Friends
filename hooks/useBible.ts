@@ -109,6 +109,8 @@ export function useBible() {
         if (selectedChapterIndex !== validChapterIndex) setSelectedChapterIndex(validChapterIndex);
     }, [selectedBookIndex, validBookIndex, selectedChapterIndex, validChapterIndex]);
 
+    const [autoHideHeader, setAutoHideHeader] = useState(true);
+
     const loadProgress = async () => {
         try {
             setIsLoading(true);
@@ -116,11 +118,13 @@ export function useBible() {
             const savedBook = await AsyncStorage.getItem('bible_book');
             const savedChapter = await AsyncStorage.getItem('bible_chapter');
             const savedFontSize = await AsyncStorage.getItem('bible_font_size');
+            const savedAutoHide = await AsyncStorage.getItem('bible_auto_hide');
 
             if (savedVersion) setSelectedVersion(savedVersion);
             if (savedBook) setSelectedBookIndex(parseInt(savedBook));
             if (savedChapter) setSelectedChapterIndex(parseInt(savedChapter));
             if (savedFontSize) setBaseFontSize(parseFloat(savedFontSize));
+            if (savedAutoHide !== null) setAutoHideHeader(savedAutoHide === 'true');
         } catch (error) {
             console.error('Failed to load bible progress', error);
         } finally {
@@ -143,6 +147,15 @@ export function useBible() {
             await AsyncStorage.setItem('bible_font_size', size.toString());
         } catch (error) {
             console.error('Failed to save font size', error);
+        }
+    };
+
+    const setAutoHideHeaderAndSave = async (value: boolean) => {
+        setAutoHideHeader(value);
+        try {
+            await AsyncStorage.setItem('bible_auto_hide', value.toString());
+        } catch (error) {
+            console.error('Failed to save auto hide setting', error);
         }
     };
 
@@ -450,6 +463,7 @@ export function useBible() {
         handleSearch, selectSuggestion,
         handleNextChapter, handlePrevChapter,
         togglePageBookmark, deleteBookmark, goToBookmark,
-        toggleHighlight, handleCopy, handleAskSocius
+        toggleHighlight, handleCopy, handleAskSocius,
+        autoHideHeader, setAutoHideHeader: setAutoHideHeaderAndSave
     };
 }

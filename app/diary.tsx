@@ -71,7 +71,7 @@ export default function DiaryScreen() {
     };
 
     const saveEdit = async (id: string, silent: boolean = false) => {
-        if (editContent.trim() === '') return;
+        if (editContent.trim() === '' && editTitle.trim() === '') return;
 
         if (silent) setIsAutosaving(true);
 
@@ -271,7 +271,7 @@ export default function DiaryScreen() {
             >
                 <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.background }}>
                     <SafeAreaView style={{ flex: 1 }} edges={['bottom', 'left', 'right']}>
-                        <View style={[styles.modalHeaderBar, { paddingTop: Platform.OS === 'ios' ? insets.top : 16 }]}>
+                        <View style={[styles.modalHeaderBar, { paddingTop: 16 }]}>
                             <TouchableOpacity
                                 onPress={() => {
                                     setModalVisible(false);
@@ -313,7 +313,7 @@ export default function DiaryScreen() {
                     </SafeAreaView>
                     {(editContent.trim().length > 0 || editTitle.trim().length > 0) && (
                         <View style={{ padding: 10, alignItems: 'center' }}>
-                            <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{isAutosaving ? t('common.saving') : 'Autosave enabled'}</Text>
+                            <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{isAutosaving ? t('common.saving') : t('diary.autosave_enabled')}</Text>
                         </View>
                     )}
                 </KeyboardAvoidingView>

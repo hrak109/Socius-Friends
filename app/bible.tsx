@@ -42,7 +42,8 @@ export default function BibleScreen() {
         handleSearch, selectSuggestion,
         handleNextChapter, handlePrevChapter,
         togglePageBookmark, deleteBookmark, goToBookmark,
-        toggleHighlight, handleCopy, handleAskSocius
+        toggleHighlight, handleCopy, handleAskSocius,
+        autoHideHeader, setAutoHideHeader
     } = useBible();
 
     const [modalPosition, setModalPosition] = useState({ x: 0, y: 0, isTop: false });
@@ -62,6 +63,12 @@ export default function BibleScreen() {
     const HEADER_HEIGHT = 60 + insets.top; // Include safe area inset
 
     const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+        if (!autoHideHeader) {
+            // If auto-hide is disabled, ensure header is always visible
+            headerTranslateY.setValue(0);
+            return;
+        }
+
         const currentScrollY = event.nativeEvent.contentOffset.y;
         const diff = currentScrollY - lastScrollY.current;
 
@@ -100,6 +107,7 @@ export default function BibleScreen() {
 
         lastScrollY.current = currentScrollY;
     };
+
 
     // Derived State for Rendering
     const hasValidData = !!(currentBible && currentBook && Array.isArray(currentBook.chapters));
@@ -244,7 +252,7 @@ export default function BibleScreen() {
                         <Ionicons name="search" size={16} color={accentColor} style={styles.searchIcon} />
                         <TextInput
                             style={[styles.searchBarInput, { color: colors.text }]}
-                            placeholder={currentBook?.name ? `${currentBook.name} ${validChapterIndex + 1}` : 'Search...'}
+                            placeholder={currentBook?.name ? `${currentBook.name} ${validChapterIndex + 1}` : (t('common.search') || 'Search...')}
                             placeholderTextColor={colors.textSecondary}
                             value={searchText}
                             onChangeText={setSearchText}
@@ -413,6 +421,8 @@ export default function BibleScreen() {
                 selectedVersion={selectedVersion}
                 onSelectVersion={setSelectedVersion}
                 bibleVersions={BIBLE_VERSIONS}
+                autoHideHeader={autoHideHeader}
+                onToggleAutoHide={setAutoHideHeader}
             />
             <BibleBookmarksModal
                 visible={isBookmarksVisible}

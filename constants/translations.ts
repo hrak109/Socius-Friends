@@ -18,7 +18,10 @@ export const translations = {
             add: 'Add',
             chat: 'Chat',
             delete: 'Delete',
-            delete_confirm: 'Confirm Delete?'
+            delete_confirm: 'Confirm Delete?',
+            search: 'Search...',
+            untitled: 'Untitled',
+            saving_complete: 'Saved',
         },
         login: {
             subtitle: 'Chat with friends and AI companions',
@@ -59,6 +62,7 @@ export const translations = {
             typing: 'Socius is typing...',
             copy_success: 'Text copied to clipboard',
             error_not_sent: "Sorry, I didn't get that message!",
+            load_earlier: 'Load Earlier Messages',
         },
         settings: {
             title: 'Settings',
@@ -99,6 +103,7 @@ export const translations = {
             cancel: 'Cancel',
             save: 'Save',
             entry: 'Diary Entry',
+            autosave_enabled: 'Autosave enabled',
         },
         friends: {
             title: 'Friends',
@@ -200,6 +205,7 @@ export const translations = {
             no_bookmarks: 'No Bookmarks',
             settings: 'Settings',
             version: 'Version',
+            auto_hide_nav: 'Auto-hide Navigation',
         },
 
         workout: {
@@ -372,7 +378,8 @@ export const translations = {
             save_entry: 'Save Note',
             no_entries: 'No notes yet',
             save: 'Save',
-            cancel: 'Cancel'
+            cancel: 'Cancel',
+            autosave_enabled: 'Autosave enabled'
         },
         languages: {
             title: 'Languages',
@@ -408,6 +415,9 @@ export const translations = {
             chat: '대화',
             delete: '삭제',
             delete_confirm: '정말로 삭제 하시겠습니까?',
+            search: '검색...',
+            untitled: '제목 없음',
+            saving_complete: '저장됨',
         },
         login: {
             subtitle: '친구 및 AI 동반자와 채팅하세요',
@@ -448,6 +458,7 @@ export const translations = {
             typing: '소키어스가 입력 중입니다...',
             copy_success: '텍스트가 클립보드에 복사되었습니다',
             error_not_sent: '죄송해요, 메시지를 받지 못했습니다!',
+            load_earlier: '이전 메시지 불러오기',
         },
         settings: {
             title: '설정',
@@ -488,6 +499,7 @@ export const translations = {
             cancel: '취소',
             save: '저장',
             entry: '일기',
+            autosave_enabled: '자동 저장 켜짐',
         },
         friends: {
             title: '친구',
@@ -585,6 +597,7 @@ export const translations = {
             no_bookmarks: '북마크가 없습니다',
             settings: '설정',
             version: '버전',
+            auto_hide_nav: '네비게이션 자동 숨김',
         },
 
         workout: {
@@ -757,7 +770,8 @@ export const translations = {
             save_entry: '저장',
             no_entries: '노트가 없습니다',
             save: '저장',
-            cancel: '취소'
+            cancel: '취소',
+            autosave_enabled: '자동 저장 켜짐'
         },
         languages: {
             title: '언어 학습',

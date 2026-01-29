@@ -262,7 +262,9 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
                     renderAvatar={renderAvatar}
                     renderDay={renderDay}
                     loadEarlier={canLoadMore}
+                    infiniteScroll
                     onLoadEarlier={loadEarlierMessages}
+                    loadEarlierLabel={t('chat.load_earlier')}
                     isLoadingEarlier={isLoadingEarlier}
                     renderInputToolbar={renderInputToolbar}
                     renderFooter={() => {

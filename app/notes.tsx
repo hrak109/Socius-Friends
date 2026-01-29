@@ -97,7 +97,7 @@ export default function NotesScreen() {
     };
 
     const saveEdit = async (id: string, silent: boolean = false) => {
-        if (editContent.trim() === '') return;
+        if (editContent.trim() === '' && editTitle.trim() === '') return;
 
         if (silent) setIsAutosaving(true);
 
@@ -127,7 +127,7 @@ export default function NotesScreen() {
             const today = new Date().toISOString();
             const res = await api.post('/notes', {
                 content: editContent,
-                title: editTitle.trim() === '' ? 'Untitled' : editTitle,
+                title: editTitle.trim() === '' ? (t('common.untitled') || 'Untitled') : editTitle,
                 date: today
             });
 
@@ -217,7 +217,7 @@ export default function NotesScreen() {
         >
             <View style={styles.noteHeader}>
                 <Text style={[styles.noteTitle, { color: colors.text, flex: 1 }]} numberOfLines={2}>
-                    {item.title || 'Untitled'}
+                    {item.title || (t('common.untitled') || 'Untitled')}
                 </Text>
                 <Ionicons name="menu" size={20} color={colors.textSecondary} style={{ opacity: 0.5 }} />
             </View>
@@ -253,7 +253,7 @@ export default function NotesScreen() {
             <View style={[styles.searchContainer, { marginHorizontal: 16, marginTop: 10, marginBottom: 10, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
                 <Ionicons name="search" size={20} color={colors.textSecondary} style={{ marginRight: 8 }} />
                 <TextInput
-                    placeholder={t('notes.title_placeholder') || 'Search notes...'} // Recycle placeholder trans or add new
+                    placeholder={t('common.search') || 'Search...'}
                     placeholderTextColor={colors.textSecondary}
                     style={[styles.searchInput, { color: colors.text }]}
                     value={searchQuery}
@@ -306,7 +306,7 @@ export default function NotesScreen() {
             >
                 <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.background }}>
                     <SafeAreaView style={{ flex: 1 }}>
-                        <View style={[styles.modalHeaderBar, { paddingTop: Platform.OS === 'ios' ? insets.top : 16 }]}>
+                        <View style={[styles.modalHeaderBar, { paddingTop: 16 }]}>
                             <TouchableOpacity
                                 onPress={() => {
                                     setModalVisible(false);
@@ -348,7 +348,7 @@ export default function NotesScreen() {
                     </SafeAreaView>
                     {(editContent.length > 0 || editTitle.length > 0) && (
                         <View style={{ padding: 10, paddingBottom: 20, alignItems: 'center' }}>
-                            <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{isAutosaving ? t('common.saving') : 'Autosave enabled'}</Text>
+                            <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{isAutosaving ? t('common.saving') : t('notes.autosave_enabled')}</Text>
                         </View>
                     )}
                 </KeyboardAvoidingView>

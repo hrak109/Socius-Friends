@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Modal, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Modal, StyleSheet, Switch, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLanguage } from '@/context/LanguageContext';
@@ -14,6 +14,8 @@ interface BibleSettingsModalProps {
     selectedVersion: string;
     onSelectVersion: (version: string) => void;
     bibleVersions: { id: string; name: string }[];
+    autoHideHeader: boolean;
+    onToggleAutoHide: (value: boolean) => void;
 }
 
 export function BibleSettingsModal({
@@ -24,7 +26,9 @@ export function BibleSettingsModal({
     onOpenBookmarks,
     selectedVersion,
     onSelectVersion,
-    bibleVersions
+    bibleVersions,
+    autoHideHeader,
+    onToggleAutoHide
 }: BibleSettingsModalProps) {
     const { colors, isDark } = useTheme();
     const { t } = useLanguage();
@@ -67,6 +71,20 @@ export function BibleSettingsModal({
                                 <Ionicons name="add" size={24} color={colors.text} />
                             </TouchableOpacity>
                         </View>
+                    </View>
+
+                    {/* Auto Hide Header Section */}
+                    <View style={[styles.settingsLinkItem, { backgroundColor: colors.card, borderColor: colors.border, paddingVertical: 12 }]}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                            <Ionicons name="expand-outline" size={22} color={colors.text} style={{ marginRight: 12 }} />
+                            <Text style={[styles.settingsLinkText, { color: colors.text }]}>{t('bible.auto_hide_nav') || 'Auto-hide Navigation'}</Text>
+                        </View>
+                        <Switch
+                            value={autoHideHeader}
+                            onValueChange={onToggleAutoHide}
+                            trackColor={{ false: '#767577', true: colors.primary }}
+                            thumbColor={Platform.OS === 'android' ? '#f4f3f4' : ''}
+                        />
                     </View>
 
                     {/* Bookmarks Link */}
