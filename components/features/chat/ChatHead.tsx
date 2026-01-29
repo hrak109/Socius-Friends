@@ -29,7 +29,7 @@ export default function ChatHead() {
         if (currentPath.startsWith('/bible')) return 'bible';
         if (currentPath.startsWith('/notes')) return 'notes';
         if (currentPath.startsWith('/diary')) return 'diary';
-        return 'global';
+        return 'default';
     };
 
     useEffect(() => {

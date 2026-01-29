@@ -13,7 +13,7 @@ interface NotificationContextType {
     unreadDirectMessages: number;
     friendRequests: number;
     lastNotificationTime: Date | null;
-    lastMessage: { id: number; topic: string; content: string; timestamp: number } | null;
+    lastMessage: { id: number; message_group_id: string; content: string; timestamp: number } | null;
     lastDM: { id: number; senderId: number; content: string; timestamp: number } | null;
     refreshNotifications: () => Promise<void>;
     setRouteSegments: (segments: string[]) => void;
@@ -44,7 +44,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     const [unreadDirectMessages, setUnreadDirectMessages] = useState(0);
     const [friendRequests, setFriendRequests] = useState(0);
     const [lastNotificationTime, setLastNotificationTime] = useState<Date | null>(null);
-    const [lastMessage, setLastMessage] = useState<{ id: number; topic: string; content: string; timestamp: number } | null>(null);
+    const [lastMessage, setLastMessage] = useState<{ id: number; message_group_id: string; content: string; timestamp: number } | null>(null);
     const [lastDM, setLastDM] = useState<{ id: number; senderId: number; content: string; timestamp: number } | null>(null);
     const [typingThreads, setTypingThreads] = useState<Set<string>>(new Set());
     const typingTimeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
@@ -198,10 +198,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
                     (event) => {
                         if (event.type === 'message') {
                             // New Socius message arrived
-                            const topic = event.data?.topic;
-                            if (topic) {
+                            const groupId = event.data?.message_group_id;
+                            if (groupId) {
                                 // Clear typing status for this thread
-                                setTyping(topic, false);
+                                setTyping(groupId, false);
 
                                 // Also handle full ID if it starts with socius-
                                 if (event.data?.sender_id) {
@@ -212,7 +212,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
                             setLastNotificationTime(new Date());
                             setLastMessage({
                                 id: event.data?.id || Date.now(),
-                                topic: event.data?.topic || 'global',
+                                message_group_id: groupId || 'default',
                                 content: event.data?.content || '',
                                 timestamp: Date.now()
                             });

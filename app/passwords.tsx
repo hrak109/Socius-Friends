@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, View, Text, TouchableOpacity, SectionList, Modal, TextInput, Alert, ActivityIndicator, Keyboard, TouchableWithoutFeedback, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -11,6 +11,7 @@ import AppSpecificChatHead from '@/components/features/chat/AppSpecificChatHead'
 
 const GROUPS = ['social', 'work', 'personal', 'finance', 'other'];
 export default function PasswordsScreen() {
+    const insets = useSafeAreaInsets();
     const { accounts, loading, saveAccount, deleteAccount } = usePasswords();
 
     const { colors, isDark } = useTheme();
@@ -247,7 +248,7 @@ export default function PasswordsScreen() {
                 >
                     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                         <View style={styles.modalOverlay}>
-                            <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+                            <View style={[styles.modalContent, { backgroundColor: colors.card, paddingTop: Platform.OS === 'ios' ? insets.top : 24 }]}>
                                 <View style={styles.modalHeader}>
                                     <Text style={[styles.modalTitle, { color: colors.text }]}>
                                         {editingId ? t('passwords.edit_account') : t('passwords.add_account')}

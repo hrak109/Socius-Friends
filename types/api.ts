@@ -18,7 +18,7 @@ export interface ChatMessage {
     id: number;
     message_author: 'user' | 'assistant';
     content: string;
-    topic: string;
+    message_group_id: string;
     created_at: string; // ISO date string
     role?: 'user' | 'assistant'; // Backwards compatibility
 }

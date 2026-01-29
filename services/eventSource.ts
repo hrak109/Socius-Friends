@@ -7,7 +7,7 @@ type NotificationEvent = {
     data?: {
         id?: number;
         content?: string;
-        topic?: string;
+        message_group_id?: string;
         sender_id?: number;
         created_at?: string;
     };

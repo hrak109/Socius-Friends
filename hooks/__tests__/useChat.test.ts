@@ -47,7 +47,7 @@ describe('useChat hook', () => {
     });
 
     it('initializes with default values', () => {
-        const { result } = renderHook(() => useChat({ topic: 'global' }));
+        const { result } = renderHook(() => useChat({ message_group_id: 'default' }));
 
         expect(result.current.messages).toEqual([]);
         expect(result.current.text).toBe('');
@@ -58,7 +58,7 @@ describe('useChat hook', () => {
         const useUserProfile = require('@/context/UserProfileContext').useUserProfile;
         useUserProfile.mockReturnValue({ displayName: 'Test', displayAvatar: null });
 
-        const { result } = renderHook(() => useChat({ topic: 'global' }));
+        const { result } = renderHook(() => useChat({ message_group_id: 'default' }));
         // Falls back to user.photo because displayAvatar is null
         expect(result.current.currentUser.avatar).toEqual({ uri: 'http://google.com/photo.jpg' });
     });
@@ -67,7 +67,7 @@ describe('useChat hook', () => {
         const useUserProfile = require('@/context/UserProfileContext').useUserProfile;
         useUserProfile.mockReturnValue({ displayName: 'Test', displayAvatar: 'google' });
 
-        const { result } = renderHook(() => useChat({ topic: 'global' }));
+        const { result } = renderHook(() => useChat({ message_group_id: 'default' }));
         expect(result.current.currentUser.avatar).toEqual({ uri: 'http://google.com/photo.jpg' });
     });
 
@@ -75,17 +75,17 @@ describe('useChat hook', () => {
         const useUserProfile = require('@/context/UserProfileContext').useUserProfile;
         useUserProfile.mockReturnValue({ displayName: 'Test', displayAvatar: 'http://custom.com/img.png' });
 
-        const { result } = renderHook(() => useChat({ topic: 'global' }));
+        const { result } = renderHook(() => useChat({ message_group_id: 'default' }));
         expect(result.current.currentUser.avatar).toEqual({ uri: 'http://custom.com/img.png' });
     });
 
     it('sets initial message if provided', () => {
-        const { result } = renderHook(() => useChat({ topic: 'global', initialMessage: 'Hello' }));
+        const { result } = renderHook(() => useChat({ message_group_id: 'default', initialMessage: 'Hello' }));
         expect(result.current.text).toBe('Hello');
     });
 
     it('sends a message via api.post /ask for non-friend chats', async () => {
-        const { result } = renderHook(() => useChat({ topic: 'global' }));
+        const { result } = renderHook(() => useChat({ message_group_id: 'default' }));
 
         const message = {
             _id: 1,
@@ -100,7 +100,7 @@ describe('useChat hook', () => {
 
         expect(api.post).toHaveBeenCalledWith('/ask', expect.objectContaining({
             q_text: 'Test question',
-            topic: 'global'
+            message_group_id: 'default'
         }));
     });
 

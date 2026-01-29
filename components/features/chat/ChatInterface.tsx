@@ -28,7 +28,7 @@ interface ChatInterfaceProps {
     onClose?: () => void;
     isModal?: boolean;
     initialMessage?: string;
-    topic?: string; // NEW: Topic/Context support
+    message_group_id?: string; // NEW: message_group_id/Context support
     friendId?: number; // NEW: For DM chats with users
     companionId?: number; // NEW: For specific Socius companions
 
@@ -37,11 +37,14 @@ interface ChatInterfaceProps {
     showHeader?: boolean; // NEW: Should show header
 }
 
-export default function ChatInterface({ onClose, isModal = false, initialMessage = '', topic = 'global', friendId, companionId, friendName, friendAvatar, showHeader = true }: ChatInterfaceProps) {
+export default function ChatInterface({ onClose, isModal = false, initialMessage = '', message_group_id = 'default', friendId, companionId, friendName, friendAvatar, showHeader = true }: ChatInterfaceProps) {
     const { colors } = useTheme();
     const { t, language } = useLanguage();
-    const { messages, text, setText, onSend, isTyping, isWaitingForResponse, currentUser } = useChat({
-        topic, friendId, companionId, friendName, friendAvatar, initialMessage
+    const {
+        messages, text, setText, onSend, isTyping, isWaitingForResponse,
+        isLoadingEarlier, canLoadMore, loadEarlierMessages, currentUser
+    } = useChat({
+        message_group_id, friendId, companionId, friendName, friendAvatar, initialMessage
     });
     const textInputRef = useRef<any>(null);
 
@@ -171,7 +174,7 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
                 onPress={() => {
                     if (text.trim()) {
                         onSend([{
-                            _id: Math.round(Math.random() * 1000000),
+                            _id: String(Math.round(Math.random() * 1000000)),
                             text: text.trim(),
                             createdAt: new Date(),
                             user: currentUser
@@ -237,8 +240,8 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
                             <View style={{ width: 40 }} />
                         )}
                         <Text style={[styles.headerTitle, { color: colors.text }]}>
-                            {topic && topic !== 'global'
-                                ? `${t('chat.title')} (${topic.charAt(0).toUpperCase() + topic.slice(1)})`
+                            {message_group_id && message_group_id !== 'default'
+                                ? `${t('chat.title')} (${message_group_id.charAt(0).toUpperCase() + message_group_id.slice(1)})`
                                 : t('chat.title')}
                         </Text>
                         <View style={{ width: 40 }} />
@@ -258,6 +261,9 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
                     renderBubble={renderBubble}
                     renderAvatar={renderAvatar}
                     renderDay={renderDay}
+                    loadEarlier={canLoadMore}
+                    onLoadEarlier={loadEarlierMessages}
+                    isLoadingEarlier={isLoadingEarlier}
                     renderInputToolbar={renderInputToolbar}
                     renderFooter={() => {
                         if (!isTyping) return null;

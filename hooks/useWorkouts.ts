@@ -65,8 +65,15 @@ export function useWorkouts() {
         // Stats
         try {
             const statsRes = await api.get('/workouts/stats');
-            setStats(statsRes.data);
-            await AsyncStorage.setItem(STATS_KEY, JSON.stringify(statsRes.data));
+            const mappedStats: PhysicalStats = {
+                weight: statsRes.data.weight,
+                height: statsRes.data.height,
+                age: statsRes.data.age,
+                gender: statsRes.data.gender,
+                activityLevel: statsRes.data.activity_level
+            };
+            setStats(mappedStats);
+            await AsyncStorage.setItem(STATS_KEY, JSON.stringify(mappedStats));
         } catch (e) { /* ignore */ }
 
         // Activities
@@ -86,14 +93,16 @@ export function useWorkouts() {
                     });
                 });
 
-                const unsyncedLocal = currentLocalActs.filter(a => !a.synced);
                 const remoteActs = Array.from(remoteMap.values());
-                const finalActs = [...remoteActs, ...unsyncedLocal.filter(a => !remoteMap.has(a.id))];
 
-                finalActs.sort((a, b) => b.timestamp - a.timestamp); // Sort by time desc
-
-                setActivities(finalActs);
-                await AsyncStorage.setItem(ACTIVITIES_KEY, JSON.stringify(finalActs));
+                setActivities(prev => {
+                    // Keep local unsynced acts that aren't in remote yet
+                    const unsyncedLocal = prev.filter(a => !a.synced);
+                    const finalActs = [...remoteActs, ...unsyncedLocal.filter(a => !remoteMap.has(a.id))];
+                    finalActs.sort((a, b) => b.timestamp - a.timestamp);
+                    AsyncStorage.setItem(ACTIVITIES_KEY, JSON.stringify(finalActs));
+                    return finalActs;
+                });
             }
         } catch (e) { /* ignore */ }
     }, []);
@@ -136,9 +145,15 @@ export function useWorkouts() {
         await AsyncStorage.setItem(STATS_KEY, JSON.stringify(newStats));
 
         try {
-            await api.post('/workouts/stats', newStats);
+            await api.post('/workouts/stats', {
+                weight: newStats.weight,
+                height: newStats.height,
+                age: newStats.age,
+                gender: newStats.gender,
+                activity_level: newStats.activityLevel
+            });
         } catch (e) {
-
+            console.error('Failed to sync physical stats', e);
         }
     }, []);
 

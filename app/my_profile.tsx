@@ -10,6 +10,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useUserProfile } from '@/context/UserProfileContext';
 import { PROFILE_AVATARS } from '@/constants/avatars';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { useWorkouts } from '@/hooks/useWorkouts';
 
 export default function ProfileScreen() {
     const router = useRouter();
@@ -17,6 +18,7 @@ export default function ProfileScreen() {
     const { colors } = useTheme();
     const { t } = useLanguage();
     const { displayName, displayAvatar, username: contextUsername, updateProfile } = useUserProfile();
+    const { stats, saveStats } = useWorkouts();
 
     // Edit state
     const [isEditing, setIsEditing] = useState(false);
@@ -24,6 +26,14 @@ export default function ProfileScreen() {
     const [editUsername, setEditUsername] = useState('');
     const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
     const [username, setUsername] = useState<string | null>(null);
+
+    // Workout Stats state
+    const [isEditingStats, setIsEditingStats] = useState(false);
+    const [weight, setWeight] = useState('');
+    const [height, setHeight] = useState('');
+    const [age, setAge] = useState('');
+    const [gender, setGender] = useState<'male' | 'female'>('male');
+    const [activityLevel, setActivityLevel] = useState<string>('moderate');
 
     // Google Data
     const [googlePhoto, setGooglePhoto] = useState<string | null>(null);
@@ -49,7 +59,15 @@ export default function ProfileScreen() {
             setUsername(contextUsername);
             setEditUsername(contextUsername);
         }
-    }, [displayName, displayAvatar, contextUsername]);
+
+        if (stats) {
+            setWeight(stats.weight?.toString() || '');
+            setHeight(stats.height?.toString() || '');
+            setAge(stats.age?.toString() || '');
+            setGender(stats.gender || 'male');
+            setActivityLevel(stats.activityLevel || 'moderate');
+        }
+    }, [displayName, displayAvatar, contextUsername, stats]);
 
     const loadGoogleProfile = async () => {
         try {
@@ -81,6 +99,26 @@ export default function ProfileScreen() {
         loadBackendProfile();
     }, []);
 
+    const handleSaveStats = async () => {
+        if (!weight || !height || !age) {
+            Alert.alert(t('common.error'), t('workout.fill_all_fields') || 'Please fill all fields');
+            return;
+        }
+
+        try {
+            await saveStats({
+                weight: parseFloat(weight),
+                height: parseFloat(height),
+                age: parseInt(age),
+                gender: gender as any,
+                activityLevel: activityLevel as any
+            });
+            setIsEditingStats(false);
+            Alert.alert(t('common.success'), t('workout.stats_updated') || 'Stats updated');
+        } catch (error) {
+            Alert.alert(t('common.error'), t('workout.stats_update_failed') || 'Failed to update stats');
+        }
+    };
 
 
     const handleSave = async () => {
@@ -209,15 +247,96 @@ export default function ProfileScreen() {
 
                         <View style={[styles.divider, { backgroundColor: colors.border, marginVertical: 20 }]} />
 
-                        {/* Read-Only Google Info */}
-                        <Text style={[styles.sectionHeader, { color: colors.text, marginBottom: 15 }]}>{t('profile.google_account')}</Text>
-                        <View style={styles.googleInfoRow}>
-                            {googlePhoto && <Image source={{ uri: googlePhoto }} style={styles.googleAvatar} />}
-                            <View>
-                                <Text style={[styles.googleName, { color: colors.text }]}>{googleName}</Text>
-                                <Text style={[styles.email, { color: colors.textSecondary }]}>{email}</Text>
+                        {/* Physical Stats Section */}
+                        <Text style={[styles.sectionHeader, { color: colors.text }]}>{t('workout.physical_profile') || 'Physical Profile'}</Text>
+
+                        {isEditingStats ? (
+                            <View style={styles.editContainer}>
+                                <View style={styles.inputRow}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={[styles.label, { color: colors.textSecondary }]}>{t('workout.weight')} (kg)</Text>
+                                        <TextInput
+                                            style={[styles.input, { color: colors.text, backgroundColor: colors.background, borderColor: colors.primary }]}
+                                            value={weight}
+                                            onChangeText={setWeight}
+                                            keyboardType="numeric"
+                                            placeholder="70"
+                                        />
+                                    </View>
+                                    <View style={{ width: 10 }} />
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={[styles.label, { color: colors.textSecondary }]}>{t('workout.height')} (cm)</Text>
+                                        <TextInput
+                                            style={[styles.input, { color: colors.text, backgroundColor: colors.background, borderColor: colors.primary }]}
+                                            value={height}
+                                            onChangeText={setHeight}
+                                            keyboardType="numeric"
+                                            placeholder="175"
+                                        />
+                                    </View>
+                                </View>
+
+                                <View style={styles.inputRow}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={[styles.label, { color: colors.textSecondary }]}>{t('workout.age')}</Text>
+                                        <TextInput
+                                            style={[styles.input, { color: colors.text, backgroundColor: colors.background, borderColor: colors.primary }]}
+                                            value={age}
+                                            onChangeText={setAge}
+                                            keyboardType="numeric"
+                                            placeholder="25"
+                                        />
+                                    </View>
+                                    <View style={{ width: 10 }} />
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={[styles.label, { color: colors.textSecondary }]}>{t('workout.gender')}</Text>
+                                        <View style={styles.genderRow}>
+                                            <TouchableOpacity
+                                                style={[styles.smallGenderBtn, gender === 'male' && { backgroundColor: colors.primary }]}
+                                                onPress={() => setGender('male')}
+                                            >
+                                                <Text style={{ color: gender === 'male' ? '#fff' : colors.text, fontSize: 12 }}>{t('workout.male')}</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={[styles.smallGenderBtn, gender === 'female' && { backgroundColor: colors.primary }]}
+                                                onPress={() => setGender('female')}
+                                            >
+                                                <Text style={{ color: gender === 'female' ? '#fff' : colors.text, fontSize: 12 }}>{t('workout.female')}</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                </View>
+
+                                <View style={styles.buttonRow}>
+                                    <TouchableOpacity style={[styles.actionSaveButton, { backgroundColor: colors.primary }]} onPress={handleSaveStats}>
+                                        <Text style={styles.buttonText}>{t('common.save')}</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity style={[styles.actionCancelButton, { backgroundColor: colors.border }]} onPress={() => setIsEditingStats(false)}>
+                                        <Text style={styles.buttonText}>{t('common.cancel')}</Text>
+                                    </TouchableOpacity>
+                                </View>
                             </View>
-                        </View>
+                        ) : (
+                            <View style={styles.statsDisplay}>
+                                <View style={styles.statsRow}>
+                                    <View style={styles.statItem}>
+                                        <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('workout.weight')}</Text>
+                                        <Text style={[styles.statValue, { color: colors.text }]}>{weight || '--'} kg</Text>
+                                    </View>
+                                    <View style={styles.statItem}>
+                                        <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('workout.height')}</Text>
+                                        <Text style={[styles.statValue, { color: colors.text }]}>{height || '--'} cm</Text>
+                                    </View>
+                                    <View style={styles.statItem}>
+                                        <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('workout.age')}</Text>
+                                        <Text style={[styles.statValue, { color: colors.text }]}>{age || '--'}</Text>
+                                    </View>
+                                </View>
+                                <TouchableOpacity onPress={() => setIsEditingStats(true)}>
+                                    <Text style={{ color: colors.primary, marginTop: 10, textAlign: 'center' }}>{t('workout.edit_stats') || 'Edit Stats'}</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
 
 
                     </View>
@@ -479,5 +598,45 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         alignItems: 'center',
         flex: 1,
+    },
+    statsDisplay: {
+        width: '100%',
+        padding: 5,
+    },
+    statsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 5,
+    },
+    statItem: {
+        alignItems: 'center',
+        flex: 1,
+    },
+    statLabel: {
+        fontSize: 12,
+        marginBottom: 2,
+    },
+    statValue: {
+        fontSize: 18,
+        fontWeight: '700',
+    },
+    inputRow: {
+        flexDirection: 'row',
+        width: '100%',
+        marginBottom: 10,
+    },
+    genderRow: {
+        flexDirection: 'row',
+        gap: 5,
+        marginTop: 5,
+    },
+    smallGenderBtn: {
+        flex: 1,
+        height: 36,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#ddd',
     },
 });

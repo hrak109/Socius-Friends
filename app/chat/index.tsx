@@ -7,12 +7,12 @@ export default function SociusChatScreen() {
         context?: string;
     }>();
 
-    // Default to 'global' if no context provided
-    const chatContext = context || 'global';
+    // Default to 'default' if no context provided
+    const chatContext = context || 'default';
 
     return (
         <ChatInterface
-            topic={chatContext}
+            message_group_id={chatContext}
         />
     );
 }

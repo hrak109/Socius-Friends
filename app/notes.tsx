@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, TextInput, ActivityIndicator, Modal, KeyboardAvoidingView, Platform, Alert, Keyboard, ScrollView, Dimensions } from 'react-native';
 import { DraggableNoteGrid } from '../components/features/notes/DraggableNoteGrid';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { useTheme } from '@/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import api from '@/services/api';
 import { useLanguage } from '@/context/LanguageContext';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useState, useEffect } from 'react'; // Added useState and useEffect
 
 const { width } = Dimensions.get('window');
 const COLUMN_WIDTH = (width - 40) / 2; // 16px side margins + 8px gap
@@ -23,6 +23,7 @@ type NoteEntry = {
 };
 
 export default function NotesScreen() {
+    const insets = useSafeAreaInsets();
     const { colors, isDark } = useTheme();
     const { t, language } = useLanguage();
     const [entries, setEntries] = useState<NoteEntry[]>([]);
@@ -249,7 +250,7 @@ export default function NotesScreen() {
             }} />
 
 
-            <View style={[styles.searchContainer, { marginHorizontal: 16, marginTop: 0, marginBottom: 10, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
+            <View style={[styles.searchContainer, { marginHorizontal: 16, marginTop: 10, marginBottom: 10, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
                 <Ionicons name="search" size={20} color={colors.textSecondary} style={{ marginRight: 8 }} />
                 <TextInput
                     placeholder={t('notes.title_placeholder') || 'Search notes...'} // Recycle placeholder trans or add new
@@ -305,7 +306,7 @@ export default function NotesScreen() {
             >
                 <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.background }}>
                     <SafeAreaView style={{ flex: 1 }}>
-                        <View style={styles.modalHeaderBar}>
+                        <View style={[styles.modalHeaderBar, { paddingTop: Platform.OS === 'ios' ? insets.top : 16 }]}>
                             <TouchableOpacity
                                 onPress={() => {
                                     setModalVisible(false);

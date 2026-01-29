@@ -20,7 +20,7 @@ export default function ChatScreen() {
     // Determine topic based on type
     const isSocius = type === 'socius';
     // Use the ID as topic for socius to keep conversations separate (e.g., socius-1, socius-2)
-    const topic = isSocius ? id : 'dm';
+    const message_group_id = isSocius ? id : 'dm';
     const friendId = type === 'user' ? parseInt(id.replace('user-', '')) : undefined;
 
     // Extract companion ID if it's a custom socius friend
@@ -90,7 +90,7 @@ export default function ChatScreen() {
             />
             <ChatInterface
                 key={`${id}-${params.initialText || ''}`}
-                topic={topic}
+                message_group_id={message_group_id}
                 friendId={friendId}
                 companionId={companionId}
 

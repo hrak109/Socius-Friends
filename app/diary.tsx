@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, FlatList, TextInput, ActivityIndicator, Modal, KeyboardAvoidingView, Platform, ScrollView, Alert, Keyboard } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { useTheme } from '@/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +17,7 @@ type DiaryEntry = {
 };
 
 export default function DiaryScreen() {
+    const insets = useSafeAreaInsets();
     const { colors, isDark } = useTheme();
     const { t, language } = useLanguage();
     const [entries, setEntries] = useState<DiaryEntry[]>([]);
@@ -269,8 +270,8 @@ export default function DiaryScreen() {
                 }}
             >
                 <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.background }}>
-                    <SafeAreaView style={{ flex: 1 }}>
-                        <View style={styles.modalHeaderBar}>
+                    <SafeAreaView style={{ flex: 1 }} edges={['bottom', 'left', 'right']}>
+                        <View style={[styles.modalHeaderBar, { paddingTop: Platform.OS === 'ios' ? insets.top : 16 }]}>
                             <TouchableOpacity
                                 onPress={() => {
                                     setModalVisible(false);
