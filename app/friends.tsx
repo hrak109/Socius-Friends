@@ -102,7 +102,7 @@ export default function FriendsScreen() {
 
     const acceptRequest = async (id: number) => {
         try {
-            await api.post(`/friends/accept/${id}`);
+            await api.post(`/friends/respond/${id}`, { action: 'accept' });
             fetchRequests();
             fetchFriends();
             refreshNotifications();
@@ -113,7 +113,7 @@ export default function FriendsScreen() {
 
     const rejectRequest = async (id: number) => {
         try {
-            await api.post(`/friends/reject/${id}`);
+            await api.post(`/friends/respond/${id}`, { action: 'reject' });
             fetchRequests();
             refreshNotifications();
         } catch (error) {

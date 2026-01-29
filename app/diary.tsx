@@ -28,8 +28,8 @@ export default function DiaryScreen() {
     const [editTitle, setEditTitle] = useState('');
     const [isAutosaving, setIsAutosaving] = useState(false);
 
-    const debouncedTitle = useDebounce(editTitle, 1000);
-    const debouncedContent = useDebounce(editContent, 1000);
+    const debouncedTitle = useDebounce(editTitle, 500);
+    const debouncedContent = useDebounce(editContent, 500);
 
     // Modal States
     const [modalVisible, setModalVisible] = useState(false);

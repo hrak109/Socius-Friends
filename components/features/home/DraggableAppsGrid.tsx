@@ -39,6 +39,7 @@ interface DraggableAppsGridProps {
     apps: AppItem[];
     onOrderChange: (newApps: AppItem[]) => void;
     onAppPress: (app: AppItem) => void;
+    badges?: Record<string, number>;
 }
 
 const SortableItem = ({
@@ -48,7 +49,8 @@ const SortableItem = ({
     positions,
     onDragEnd,
     onPress,
-    scrollViewPadding = 16
+    scrollViewPadding = 16,
+    badgeValue
 }: {
     id: string;
     index: number;
@@ -57,6 +59,7 @@ const SortableItem = ({
     onDragEnd: (from: number, to: number) => void;
     onPress: () => void;
     scrollViewPadding?: number;
+    badgeValue?: number;
 }) => {
     const { colors } = useTheme();
     const { t } = useLanguage();
@@ -190,13 +193,18 @@ const SortableItem = ({
                         </View>
                     )}
                     <Text style={[styles.appLabel, { color: colors.text }]} numberOfLines={1}>{t(app.label)}</Text>
+                    {badgeValue ? (
+                        <View style={styles.badge}>
+                            <Text style={styles.badgeText}>{badgeValue}</Text>
+                        </View>
+                    ) : null}
                 </TouchableOpacity>
             </Animated.View>
         </GestureDetector>
     );
 };
 
-export const DraggableAppsGrid = ({ apps, onOrderChange, onAppPress }: DraggableAppsGridProps) => {
+export const DraggableAppsGrid = ({ apps, onOrderChange, onAppPress, badges = {} }: DraggableAppsGridProps) => {
     // Shared value for current positions: { [id]: index }
     const positions = useSharedValue<{ [key: string]: number }>({});
 
@@ -206,7 +214,7 @@ export const DraggableAppsGrid = ({ apps, onOrderChange, onAppPress }: Draggable
             initialPositions[app.id] = index;
         });
         positions.value = initialPositions;
-    }, [apps]); // Reset when external apps prop changes significantly?
+    }, [apps, positions]); // Reset when external apps prop changes significantly?
     // Actually we only want to init once or when mode changes.
 
     // We need to keep a ref to current apps to reorder them based on positions on drop
@@ -238,6 +246,7 @@ export const DraggableAppsGrid = ({ apps, onOrderChange, onAppPress }: Draggable
                         positions={positions}
                         onDragEnd={handleDragEnd}
                         onPress={() => onAppPress(app)}
+                        badgeValue={badges[app.id]}
                     />
                 ))}
             </Animated.ScrollView>
@@ -268,5 +277,24 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontWeight: '500',
         textAlign: 'center',
+    },
+    badge: {
+        position: 'absolute',
+        top: 0,
+        right: 12,
+        minWidth: 18,
+        height: 18,
+        borderRadius: 9,
+        backgroundColor: '#FF3B30',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 4,
+        borderWidth: 1.5,
+        borderColor: '#fff',
+    },
+    badgeText: {
+        color: '#fff',
+        fontSize: 10,
+        fontWeight: 'bold',
     },
 });

@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { StyleSheet, View, Image, Animated, PanResponder, Dimensions, Text, useWindowDimensions } from 'react-native';
+import { StyleSheet, View, Image, Animated, PanResponder, useWindowDimensions, Text } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, usePathname } from 'expo-router';
 import { SOCIUS_AVATAR_MAP } from '@/constants/avatars';
 import { useTheme } from '@/context/ThemeContext';
 import { useNotifications } from '@/context/NotificationContext';
 
-const { width: windowWidth, height: windowHeight } = Dimensions.get('window');
+
 
 export default function ChatHead() {
     const router = useRouter();
@@ -52,7 +52,7 @@ export default function ChatHead() {
             setIsLoaded(true);
         };
         loadState();
-    }, [pan]);
+    }, [pan, width, height]);
 
     const panResponder = useRef(
         PanResponder.create({

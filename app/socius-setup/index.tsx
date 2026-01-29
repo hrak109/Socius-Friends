@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
     StyleSheet,
     View,
@@ -6,13 +7,12 @@ import {
     TouchableOpacity,
     TextInput,
     Image,
-    SafeAreaView,
+    KeyboardAvoidingView,
+    ActivityIndicator,
     Dimensions,
     ScrollView,
     Alert,
-    Platform,
-    KeyboardAvoidingView,
-    ActivityIndicator
+    Platform
 } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -187,7 +187,7 @@ export default function SociusSetupScreen() {
     };
 
     const renderHeader = () => (
-        <View style={[styles.header, { paddingTop: Platform.OS === 'android' ? 40 : 10 }]}>
+        <View style={styles.header}>
             <TouchableOpacity onPress={handleBack} style={styles.backButton}>
                 <Ionicons name="arrow-back" size={24} color={colors.text} />
             </TouchableOpacity>

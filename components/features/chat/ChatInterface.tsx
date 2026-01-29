@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Image, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View, Alert, Keyboard } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Avatar, Bubble, GiftedChat } from 'react-native-gifted-chat';
+import { Bubble, GiftedChat } from 'react-native-gifted-chat';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import TypingIndicator from '@/components/features/chat/widgets/TypingIndicator';
@@ -152,10 +152,10 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
             <TextInput
                 ref={textInputRef}
                 style={[styles.customTextInput, {
-                    backgroundColor: isWaitingForResponse ? colors.card : colors.inputBackground, // Visual feedback
-                    color: isWaitingForResponse ? colors.textSecondary : colors.text
+                    backgroundColor: colors.inputBackground,
+                    color: colors.text
                 }]}
-                placeholder={isWaitingForResponse ? t('chat.thinking') || "Socius is thinking..." : t('chat.placeholder')}
+                placeholder={t('chat.placeholder')}
                 placeholderTextColor={colors.textSecondary}
                 value={text}
                 onChangeText={setText}
@@ -163,11 +163,11 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
                 textAlignVertical="center"
                 returnKeyType="default"
                 blurOnSubmit={false}
-                editable={!isWaitingForResponse} // Disable input
+                editable={true}
             />
             <TouchableOpacity
                 testID="send-button"
-                style={[styles.customSendButton, { backgroundColor: (!text.trim() || isWaitingForResponse) ? colors.border : '#007AFF' }]}
+                style={[styles.customSendButton, { backgroundColor: !text.trim() ? colors.border : '#007AFF' }]}
                 onPress={() => {
                     if (text.trim()) {
                         onSend([{
@@ -178,9 +178,9 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
                         }]);
                     }
                 }}
-                disabled={!text.trim() || isWaitingForResponse} // Disable button
+                disabled={!text.trim()}
             >
-                <Ionicons name="send" size={20} color={(!text.trim() || isWaitingForResponse) ? colors.textSecondary : '#FFFFFF'} />
+                <Ionicons name="send" size={20} color={!text.trim() ? colors.textSecondary : '#FFFFFF'} />
             </TouchableOpacity>
         </View>
     );

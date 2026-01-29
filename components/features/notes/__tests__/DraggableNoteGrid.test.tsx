@@ -5,31 +5,29 @@ import { DraggableNoteGrid } from '../DraggableNoteGrid';
 
 // Mock dependencies
 jest.mock('react-native-reanimated', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const Reanimated = require('react-native-reanimated/mock');
     Reanimated.useSharedValue = jest.fn(() => ({ value: {} }));
     Reanimated.useAnimatedStyle = jest.fn(() => ({}));
     Reanimated.useAnimatedReaction = jest.fn();
-    Reanimated.withSpring = jest.fn((val) => val);
+    Reanimated.withSpring = jest.fn((val: any) => val);
     return Reanimated;
 });
 
-jest.mock('react-native-gesture-handler', () => {
-    const { View: MockView } = require('react-native');
-    return {
-        GestureDetector: ({ children }: any) => children,
-        Gesture: {
-            Pan: () => ({
-                activateAfterLongPress: () => ({
-                    onStart: () => ({
-                        onUpdate: () => ({
-                            onFinalize: () => ({})
-                        })
+jest.mock('react-native-gesture-handler', () => ({
+    GestureDetector: ({ children }: any) => children,
+    Gesture: {
+        Pan: () => ({
+            activateAfterLongPress: () => ({
+                onStart: () => ({
+                    onUpdate: () => ({
+                        onFinalize: () => ({})
                     })
                 })
             })
-        }
-    };
-});
+        })
+    }
+}));
 
 describe('DraggableNoteGrid', () => {
     const mockData = [

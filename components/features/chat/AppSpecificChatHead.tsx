@@ -74,8 +74,7 @@ export default function AppSpecificChatHead({ roleType, appContext }: AppSpecifi
 
             setFriend(matchingFriend || null);
             friendRef.current = matchingFriend || null;
-        } catch (error) {
-
+        } catch {
             setFriend(null);
         } finally {
         }
@@ -111,7 +110,7 @@ export default function AppSpecificChatHead({ roleType, appContext }: AppSpecifi
             setIsLoaded(true);
         };
         loadPosition();
-    }, [appContext]);
+    }, [appContext, pan]);
 
     // Pan Responder with Standard Pattern
     const panResponder = useRef(

@@ -3,11 +3,15 @@ import { render, fireEvent, act } from '@testing-library/react-native';
 import ChatInterface from '../ChatInterface';
 
 // Mock dependencies
+import { View } from 'react-native';
+import { useChat } from '@/hooks/useChat';
+
+// Mock dependencies
 jest.mock('@/hooks/useChat', () => ({
     useChat: jest.fn(),
 }));
 
-const mockUseChat = require('@/hooks/useChat').useChat;
+const mockUseChat = useChat as jest.Mock;
 mockUseChat.mockReturnValue({
     messages: [],
     text: '',
@@ -39,6 +43,7 @@ jest.mock('@/context/LanguageContext', () => ({
 }));
 
 jest.mock('react-native-gifted-chat', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { View } = require('react-native');
     return {
         GiftedChat: (props: any) => (

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import api from '../services/api';
+import { useSession } from './AuthContext';
 
 type UserProfileContextType = {
     displayName: string | null;
@@ -27,9 +28,18 @@ export const UserProfileProvider = ({ children }: { children: React.ReactNode })
     const [displayAvatar, setDisplayAvatar] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
+    const { session } = useSession();
+
     useEffect(() => {
-        loadProfile();
-    }, []);
+        if (session) {
+            loadProfile();
+        } else {
+            // Clear state on logout to prevent ghost data
+            setDisplayName(null);
+            setUsername(null);
+            setDisplayAvatar(null);
+        }
+    }, [session]);
 
     const loadProfile = async () => {
         try {
@@ -79,7 +89,13 @@ export const UserProfileProvider = ({ children }: { children: React.ReactNode })
 
                 // Sync new data to storage
                 await AsyncStorage.setItem('user_display_name', resolvedName || '');
-                if (data.username) await AsyncStorage.setItem('user_username', data.username);
+
+                if (data.username) {
+                    await AsyncStorage.setItem('user_username', data.username);
+                } else {
+                    await AsyncStorage.removeItem('user_username');
+                }
+
                 await AsyncStorage.setItem('user_display_avatar', data.custom_avatar_url || 'google');
 
             } catch {

@@ -56,14 +56,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const setTyping = useCallback((id: string, isTyping: boolean) => {
-        // Clear any existing timeout for this id
-        const existingTimeout = typingTimeoutsRef.current.get(id);
-        if (existingTimeout) {
-            clearTimeout(existingTimeout);
-            typingTimeoutsRef.current.delete(id);
-        }
-
         if (isTyping) {
+            // Prevent resetting the timer if it's already running (e.g. component reload)
+            if (typingTimeoutsRef.current.has(id)) {
+                return;
+            }
+
             // Set 5-minute auto-clear timeout
             const timeout = setTimeout(() => {
                 setTypingThreads(p => {
@@ -82,6 +80,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
                 return newSet;
             });
         } else {
+            // Clear any existing timeout for this id
+            const existingTimeout = typingTimeoutsRef.current.get(id);
+            if (existingTimeout) {
+                clearTimeout(existingTimeout);
+                typingTimeoutsRef.current.delete(id);
+            }
+
             setTypingThreads(prev => {
                 const newSet = new Set(prev);
                 newSet.delete(id);

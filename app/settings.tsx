@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Switch, Alert, Modal } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Switch, Alert, Modal, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '@/context/ThemeContext';
 import { useSession } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import api from '@/services/api';
+
 
 export default function SettingsScreen() {
     const router = useRouter();
@@ -152,7 +152,8 @@ export default function SettingsScreen() {
                             value={isTwoRow}
                             onValueChange={toggleTwoRow}
                             thumbColor={isTwoRow ? colors.primary : '#f4f3f4'}
-                            trackColor={{ false: '#767577', true: isDark ? '#3e3e3e' : colors.primary }}
+
+                            trackColor={{ false: '#767577', true: Platform.OS === 'ios' ? '#3e3e3e' : (isDark ? '#3e3e3e' : colors.primary) }}
                         />
                     </View>
                 </View>

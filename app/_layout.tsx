@@ -1,5 +1,5 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import 'dayjs/locale/ko'; /* Import Korean locale for dayjs */
 import { StatusBar } from 'expo-status-bar';
 import { TouchableOpacity, Image, View } from 'react-native';
@@ -21,6 +21,8 @@ const MessagesHeaderRight = () => {
     const { user } = useSession();
     const router = useRouter();
 
+    const [imageError, setImageError] = useState(false);
+
     let avatarSource = null;
     if (displayAvatar && displayAvatar !== 'google' && PROFILE_AVATAR_MAP[displayAvatar]) {
         avatarSource = PROFILE_AVATAR_MAP[displayAvatar];
@@ -31,7 +33,12 @@ const MessagesHeaderRight = () => {
         avatarSource = { uri: user.photo };
     }
 
-    const hasAvatar = !!avatarSource;
+    // Reset error when source changes
+    useEffect(() => {
+        setImageError(false);
+    }, [avatarSource?.uri, displayAvatar]);
+
+    const hasAvatar = !!avatarSource && !imageError;
 
     const handleProfilePress = () => {
         router.push('/my_profile');
@@ -45,8 +52,10 @@ const MessagesHeaderRight = () => {
             >
                 {hasAvatar ? (
                     <Image
+                        key={avatarSource?.uri || 'avatar'}
                         source={avatarSource}
                         style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: colors.border }}
+                        onError={() => setImageError(true)}
                     />
                 ) : (
                     <Ionicons name="person-circle-outline" size={42} color={colors.text} />
@@ -111,6 +120,7 @@ function RootLayoutNav() {
                     headerTitleStyle: { color: colors.text },
                     // Enable iOS swipe back gesture (edge only)
                     gestureEnabled: true,
+                    fullScreenGestureEnabled: false,
                     headerBackTitle: t('common.back'), // Unified back button text
                 }}
             >

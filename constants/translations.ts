@@ -58,6 +58,7 @@ export const translations = {
             thinking: "I am thinking:)",
             typing: 'Socius is typing...',
             copy_success: 'Text copied to clipboard',
+            error_not_sent: "Sorry, I didn't get that message!",
         },
         settings: {
             title: 'Settings',
@@ -444,6 +445,7 @@ export const translations = {
             thinking: '생각하고 있어요:)',
             typing: '소키어스가 입력 중입니다...',
             copy_success: '텍스트가 클립보드에 복사되었습니다',
+            error_not_sent: '죄송해요, 메시지를 받지 못했습니다!',
         },
         settings: {
             title: '설정',

@@ -44,7 +44,7 @@ export default function CaloriesScreen() {
             setCalories('');
             setEditingEntry(null);
             setModalVisible(false);
-        } catch (_e) {
+        } catch {
             Alert.alert(t('common.error'), 'Failed to save entry');
         }
     };

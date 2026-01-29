@@ -57,7 +57,7 @@ export default function MessagesScreen() {
     const { colors } = useTheme();
     const { t, language } = useLanguage();
     const { session } = useSession();
-    const { lastNotificationTime, typingThreads, setTyping } = useNotifications();
+    const { lastNotificationTime, typingThreads, setTyping, friendRequests } = useNotifications();
     const [threads, setThreads] = useState<ChatThread[]>([]);
     const [refreshing, setRefreshing] = useState(false);
     const [apps, setApps] = useState(DEFAULT_APPS);
@@ -142,8 +142,25 @@ export default function MessagesScreen() {
                         </View>
                     )}
                     <Text style={[styles.appLabel, { color: colors.text }]} numberOfLines={1}>{t(item.label)}</Text>
+                    {item.id === 'friends' && friendRequests > 0 && (
+                        <View style={{
+                            position: 'absolute',
+                            top: 0,
+                            right: 9,
+                            width: 18,
+                            height: 18,
+                            borderRadius: 9,
+                            backgroundColor: '#FF3B30',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            borderWidth: 1.5,
+                            borderColor: '#fff'
+                        }}>
+                            <Text style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>{friendRequests}</Text>
+                        </View>
+                    )}
                 </TouchableOpacity>
-            </ScaleDecorator>
+            </ScaleDecorator >
         );
     };
 
@@ -172,7 +189,7 @@ export default function MessagesScreen() {
                 const sociusResponse = await api.get('/friends/socius');
                 // Filter to only show Socius companions with actual messages
                 const sociusThreads: ChatThread[] = (sociusResponse.data || [])
-                    .filter((comp: any) => comp.last_message !== null)
+                    .filter((comp: any) => comp.last_message !== null || (comp.unread_count || 0) > 0)
                     .map((comp: any) => ({
                         id: `socius-${comp.id}`,
                         type: 'socius',
@@ -440,6 +457,7 @@ export default function MessagesScreen() {
                         apps={apps}
                         onOrderChange={(data) => handleDragEnd({ data })}
                         onAppPress={(item) => router.push(item.route as any)}
+                        badges={{ friends: friendRequests }}
                     />
                 ) : (
                     <DraggableFlatList

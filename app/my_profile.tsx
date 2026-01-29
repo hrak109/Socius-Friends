@@ -8,7 +8,7 @@ import { useSession } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useUserProfile } from '@/context/UserProfileContext';
-import { PROFILE_AVATAR_MAP, PROFILE_AVATARS } from '@/constants/avatars';
+import { PROFILE_AVATARS } from '@/constants/avatars';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 export default function ProfileScreen() {

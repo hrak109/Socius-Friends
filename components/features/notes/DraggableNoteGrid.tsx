@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
-import { View, StyleSheet, Dimensions, ScrollView } from 'react-native';
+import { View, StyleSheet, Dimensions, ScrollView, Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
@@ -24,15 +25,26 @@ interface SortableGridItemProps {
     positions: SharedValue<{ [key: string]: number }>;
     onDragEnd: () => void;
     itemCount: number;
+    onDelete: () => void;
+
+    isDeleteActive: SharedValue<boolean>;
+    isAnyDragging: SharedValue<boolean>;
 }
+
+const DELETE_ZONE_HEIGHT = 120;
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const SortableGridItem = ({
     id,
     index,
     children,
     positions,
+
     onDragEnd,
-    itemCount
+    itemCount,
+    onDelete,
+    isDeleteActive,
+    isAnyDragging
 }: SortableGridItemProps) => {
     const isGestureActive = useSharedValue(false);
 
@@ -71,10 +83,18 @@ const SortableGridItem = ({
             startX.value = translateX.value;
             startY.value = translateY.value;
             isGestureActive.value = true;
+            isAnyDragging.value = true;
         })
         .onUpdate((event) => {
             translateX.value = startX.value + event.translationX;
             translateY.value = startY.value + event.translationY;
+
+            // Check for delete zone
+            if (event.absoluteY > SCREEN_HEIGHT - DELETE_ZONE_HEIGHT) {
+                if (!isDeleteActive.value) isDeleteActive.value = true;
+            } else {
+                if (isDeleteActive.value) isDeleteActive.value = false;
+            }
 
             // Calculate target index
             const col = Math.round((translateX.value - 16) / (ITEM_WIDTH + 16));
@@ -108,12 +128,19 @@ const SortableGridItem = ({
             }
         })
         .onFinalize(() => {
+            if (isDeleteActive.value) {
+                runOnJS(onDelete)();
+                isDeleteActive.value = false;
+            } else {
+                const finalOrder = positions.value[id];
+                const finalPos = getPosition(finalOrder);
+                translateX.value = withSpring(finalPos.x);
+                translateY.value = withSpring(finalPos.y);
+                runOnJS(onDragEnd)();
+            }
             isGestureActive.value = false;
-            const finalOrder = positions.value[id];
-            const finalPos = getPosition(finalOrder);
-            translateX.value = withSpring(finalPos.x);
-            translateY.value = withSpring(finalPos.y);
-            runOnJS(onDragEnd)();
+            isAnyDragging.value = false;
+            isDeleteActive.value = false; // Ensure reset
         });
 
     const animatedStyle = useAnimatedStyle(() => {
@@ -130,6 +157,7 @@ const SortableGridItem = ({
             ],
             zIndex: isGestureActive.value ? 100 : 1,
             shadowOpacity: withSpring(isGestureActive.value ? 0.2 : 0),
+            opacity: withSpring(isDeleteActive.value && isGestureActive.value ? 0.0 : 1), // Hide original item when in delete zone
         };
     });
 
@@ -149,6 +177,7 @@ export interface DraggableNoteGridProps<T> {
     contentContainerStyle?: any;
     ListEmptyComponent?: React.ReactNode;
     ListHeaderComponent?: React.ReactNode;
+    onDelete?: (item: T) => void;
 }
 
 export function DraggableNoteGrid<T extends { id: string }>({
@@ -157,9 +186,12 @@ export function DraggableNoteGrid<T extends { id: string }>({
     onOrderChange,
     contentContainerStyle,
     ListEmptyComponent,
-    ListHeaderComponent
+    ListHeaderComponent,
+    onDelete
 }: DraggableNoteGridProps<T>) {
     const positions = useSharedValue<{ [key: string]: number }>({});
+    const isDeleteActive = useSharedValue(false);
+    const isAnyDragging = useSharedValue(false);
     const dataRef = useRef(data);
     dataRef.current = data;
 
@@ -169,7 +201,7 @@ export function DraggableNoteGrid<T extends { id: string }>({
             initialPositions[item.id] = index;
         });
         positions.value = initialPositions;
-    }, [data.length]); // Re-init if length changes
+    }, [data, positions]); // Re-init if data changes
 
     const handleDragEnd = () => {
         const newOrderIndex = positions.value;
@@ -178,31 +210,73 @@ export function DraggableNoteGrid<T extends { id: string }>({
         onOrderChange(newData);
     };
 
+
+
+    const handleDelete = (id: string) => {
+        if (onDelete) {
+            const item = dataRef.current.find(d => d.id === id);
+            if (item) onDelete(item);
+        }
+    };
+
+    const deleteZoneStyle = useAnimatedStyle(() => {
+        return {
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: DELETE_ZONE_HEIGHT,
+            backgroundColor: withSpring(isDeleteActive.value ? '#ff4444' : 'rgba(0,0,0,0.5)'),
+            justifyContent: 'center',
+            alignItems: 'center',
+            opacity: withSpring(isAnyDragging.value ? 1 : 0),
+            zIndex: 50,
+        };
+    });
+
     const rowCount = Math.ceil(data.length / 2);
     const containerHeight = rowCount * (ITEM_HEIGHT + 12) + 100; // + padding
 
     return (
-        <ScrollView
-            contentContainerStyle={[contentContainerStyle, { height: containerHeight }]}
-            showsVerticalScrollIndicator={false}
-        >
-            {ListHeaderComponent}
-            {data.length === 0 ? (
-                ListEmptyComponent
-            ) : (
-                data.map((item, index) => (
-                    <SortableGridItem
-                        key={item.id}
-                        id={item.id}
-                        index={index}
-                        positions={positions}
-                        onDragEnd={handleDragEnd}
-                        itemCount={data.length}
-                    >
-                        {renderItem(item)}
-                    </SortableGridItem>
-                ))
-            )}
-        </ScrollView>
+        <View style={{ flex: 1 }}>
+            <ScrollView
+                contentContainerStyle={[contentContainerStyle, { height: containerHeight }]}
+                showsVerticalScrollIndicator={false}
+            >
+                {ListHeaderComponent}
+                {data.length === 0 ? (
+                    ListEmptyComponent
+                ) : (
+                    data.map((item, index) => (
+                        <SortableGridItem
+                            key={item.id}
+                            id={item.id}
+                            index={index}
+                            positions={positions}
+                            onDragEnd={handleDragEnd}
+                            itemCount={data.length}
+                            onDelete={() => handleDelete(item.id)}
+                            isDeleteActive={isDeleteActive}
+                            isAnyDragging={isAnyDragging}
+                        >
+                            {renderItem(item)}
+                        </SortableGridItem>
+                    ))
+                )}
+            </ScrollView>
+
+            <Animated.View style={deleteZoneStyle}>
+                <Ionicons name="trash-outline" size={32} color="white" />
+                <Text style={styles.deleteText}>Release to delete</Text>
+            </Animated.View>
+        </View>
     );
 }
+
+const styles = StyleSheet.create({
+    deleteText: {
+        color: 'white',
+        fontWeight: '600',
+        marginTop: 8,
+    }
+});

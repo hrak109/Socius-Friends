@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
 import { useTheme } from '@/context/ThemeContext';
 
@@ -11,11 +11,11 @@ export default function TypingIndicator({ color }: TypingIndicatorProps) {
     const { colors } = useTheme();
     const dotColor = color || colors.textSecondary;
 
-    const opacities = [
-        useRef(new Animated.Value(0)).current,
-        useRef(new Animated.Value(0)).current,
-        useRef(new Animated.Value(0)).current,
-    ];
+    const opacities = useMemo(() => [
+        new Animated.Value(0),
+        new Animated.Value(0),
+        new Animated.Value(0),
+    ], []);
 
     useEffect(() => {
         const animations = opacities.map((opacity, index) => {
@@ -42,7 +42,7 @@ export default function TypingIndicator({ color }: TypingIndicatorProps) {
         return () => {
             animations.forEach(anim => anim.stop());
         };
-    }, []);
+    }, [opacities]);
 
     return (
         <View style={styles.container}>

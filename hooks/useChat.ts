@@ -10,6 +10,7 @@ import { fixTimestamp } from '@/utils/date';
 import { getCachedMessages, cacheMessages, CachedMessage } from '@/services/ChatCache';
 import { PROFILE_AVATAR_MAP } from '@/constants/avatars';
 
+
 export function useChat({
     topic = 'global',
     friendId,
@@ -196,12 +197,12 @@ export function useChat({
 
             fetchHistory();
             return () => { isActive = false; };
-        }, [topic, friendId, lastNotificationTime, currentUser, botUser])
+        }, [topic, friendId, lastNotificationTime, currentUser, botUser, companionId, setTyping, refreshNotifications, t])
     );
 
     // Sending Logic
     const sendMessage = useCallback(async (msgText: string) => {
-        const TYPING_TIMEOUT = 20 * 60 * 1000;
+        const TYPING_TIMEOUT = 5 * 60 * 1000;
 
         if (friendId) {
             try {
@@ -219,6 +220,12 @@ export function useChat({
                 setIsTyping(false);
                 setIsWaitingForResponse(false);
                 setTyping(threadId, false);
+                setMessages(prev => GiftedChat.append(prev, [{
+                    _id: Math.random(),
+                    text: t('chat.error_not_sent'),
+                    createdAt: new Date(),
+                    user: botUser
+                }]));
             }, TYPING_TIMEOUT);
 
             try {
@@ -239,7 +246,7 @@ export function useChat({
                 }]));
             }
         }
-    }, [friendId, threadId, topic, companionId, botUser]);
+    }, [friendId, threadId, topic, companionId, botUser, t]);
 
     const onSend = useCallback((newMessages: IMessage[] = []) => {
         setMessages(prev => GiftedChat.append(prev, newMessages));

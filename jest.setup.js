@@ -24,6 +24,18 @@ jest.mock('react-native-keyboard-controller', () => ({
     useKeyboardHandler: jest.fn(),
 }));
 
+// Mock Google Signin
+jest.mock('@react-native-google-signin/google-signin', () => ({
+    GoogleSignin: {
+        configure: jest.fn(),
+        hasPlayServices: jest.fn().mockResolvedValue(true),
+        signIn: jest.fn().mockResolvedValue({ user: { id: 'test' } }),
+        signInSilently: jest.fn().mockResolvedValue({ user: { id: 'test' } }),
+        signOut: jest.fn(),
+        getCurrentUser: jest.fn().mockResolvedValue(null),
+    },
+}));
+
 // Silence the warning: Animated: `useNativeDriver` is not supported because the native animated module is missing
 // jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper');
 

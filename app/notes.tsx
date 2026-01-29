@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, TextInput, ActivityIndicator, Modal, KeyboardAvoidingView, Platform, Alert, Keyboard, ScrollView, Dimensions } from 'react-native';
 import { DraggableNoteGrid } from '../components/features/notes/DraggableNoteGrid';
-
-const { width } = Dimensions.get('window');
-const COLUMN_WIDTH = (width - 40) / 2; // 16px side margins + 8px gap
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { useTheme } from '@/context/ThemeContext';
@@ -11,6 +8,9 @@ import { Ionicons } from '@expo/vector-icons';
 import api from '@/services/api';
 import { useLanguage } from '@/context/LanguageContext';
 import { useDebounce } from '@/hooks/useDebounce';
+
+const { width } = Dimensions.get('window');
+const COLUMN_WIDTH = (width - 40) / 2; // 16px side margins + 8px gap
 
 type NoteEntry = {
     id: string;
@@ -34,11 +34,10 @@ export default function NotesScreen() {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editContent, setEditContent] = useState('');
     const [editTitle, setEditTitle] = useState('');
-    const [isSavingEdit, setIsSavingEdit] = useState(false);
     const [isAutosaving, setIsAutosaving] = useState(false);
 
-    const debouncedTitle = useDebounce(editTitle, 1000);
-    const debouncedContent = useDebounce(editContent, 1000);
+    const debouncedTitle = useDebounce(editTitle, 200);
+    const debouncedContent = useDebounce(editContent, 200);
 
     // Modal states
     const [modalVisible, setModalVisible] = useState(false);
@@ -100,7 +99,6 @@ export default function NotesScreen() {
         if (editContent.trim() === '') return;
 
         if (silent) setIsAutosaving(true);
-        else setIsSavingEdit(true);
 
         try {
             const res = await api.put(`/notes/${id}`, {
@@ -118,7 +116,6 @@ export default function NotesScreen() {
             console.error('Failed to update note:', error);
         } finally {
             if (silent) setIsAutosaving(false);
-            else setIsSavingEdit(false);
         }
     };
 
@@ -151,15 +148,15 @@ export default function NotesScreen() {
             const currentEntry = entries.find((e: NoteEntry) => e.id === editingId);
             if (!currentEntry) return;
 
-            const titleChanged = (debouncedTitle || '').trim() !== (currentEntry.title || '').trim();
-            const contentChanged = debouncedContent.trim() !== currentEntry.content.trim();
+            const titleChanged = (debouncedTitle || '') !== (currentEntry.title || '');
+            const contentChanged = debouncedContent !== currentEntry.content;
 
             if (titleChanged || contentChanged) {
                 saveEdit(editingId, true);
             }
         } else {
             // New entry creation
-            if (debouncedContent.trim() !== '' || debouncedTitle.trim() !== '') {
+            if (debouncedContent !== '' || debouncedTitle !== '') {
                 createEntry();
             }
         }
@@ -176,6 +173,33 @@ export default function NotesScreen() {
             console.error('Failed to sync note order:', error);
             Alert.alert(t('common.error'), 'Failed to save note order');
         }
+    };
+
+    const handleDelete = (note: NoteEntry) => {
+        Alert.alert(
+            t('common.delete'),
+            t('common.delete_confirm'),
+            [
+                { text: t('common.cancel'), style: 'cancel' },
+                {
+                    text: t('common.delete'),
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await api.delete(`/notes/${note.id}`);
+                            // Optimistic update
+                            const newEntries = entries.filter(e => e.id !== note.id);
+                            setEntries(newEntries);
+                            // Also update filtered if needed, but effect might handle it? 
+                            // Effect depends on [searchQuery, entries], so updating entries triggers effect.
+                        } catch (error) {
+                            console.error('Failed to delete note:', error);
+                            Alert.alert(t('common.error'), 'Failed to delete note');
+                        }
+                    }
+                }
+            ]
+        );
     };
 
     const renderNoteItem = (item: NoteEntry) => (
@@ -225,7 +249,7 @@ export default function NotesScreen() {
             }} />
 
 
-            <View style={[styles.searchContainer, { marginHorizontal: 16, marginTop: 10, marginBottom: 10, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
+            <View style={[styles.searchContainer, { marginHorizontal: 16, marginTop: 0, marginBottom: 10, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
                 <Ionicons name="search" size={20} color={colors.textSecondary} style={{ marginRight: 8 }} />
                 <TextInput
                     placeholder={t('notes.title_placeholder') || 'Search notes...'} // Recycle placeholder trans or add new
@@ -251,6 +275,7 @@ export default function NotesScreen() {
                         data={filteredEntries}
                         onOrderChange={handleReorder}
                         renderItem={renderNoteItem}
+                        onDelete={handleDelete}
                         contentContainerStyle={styles.scrollContent}
                         ListEmptyComponent={
                             <View style={styles.emptyState}>
@@ -320,8 +345,8 @@ export default function NotesScreen() {
                         </ScrollView>
 
                     </SafeAreaView>
-                    {(editContent.trim().length > 0 || editTitle.trim().length > 0) && (
-                        <View style={{ padding: 10, alignItems: 'center' }}>
+                    {(editContent.length > 0 || editTitle.length > 0) && (
+                        <View style={{ padding: 10, paddingBottom: 20, alignItems: 'center' }}>
                             <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{isAutosaving ? t('common.saving') : 'Autosave enabled'}</Text>
                         </View>
                     )}
