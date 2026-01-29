@@ -134,6 +134,7 @@ export default function FriendsScreen() {
                         try {
                             await api.delete(`/friends/${friendId}`);
                             fetchFriends();
+                            refreshNotifications();
                         } catch (error) {
                             console.error(error);
                         }

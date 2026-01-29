@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, Image, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import api from '@/services/api';
 import { useSession } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -41,8 +41,13 @@ export default function ProfileScreen() {
     const [email, setEmail] = useState('');
 
 
+    useFocusEffect(
+        useCallback(() => {
+            loadGoogleProfile();
+        }, [])
+    );
+
     useEffect(() => {
-        loadGoogleProfile();
         // Initialize from Context
         if (displayName) setEditName(displayName);
 

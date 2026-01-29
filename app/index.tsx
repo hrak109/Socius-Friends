@@ -70,10 +70,12 @@ export default function LoginScreen() {
 
             // Get Google profile photo
             const googlePhoto = signInResult?.data?.user?.photo || null;
+            const googleFirstName = signInResult?.data?.user?.givenName || null;
 
             const response = await api.post('/auth/google', {
                 id_token: idToken,
-                photo: googlePhoto
+                photo: googlePhoto,
+                username: googleFirstName
             });
             const { access_token } = response.data;
 

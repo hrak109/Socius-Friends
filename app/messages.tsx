@@ -57,7 +57,7 @@ export default function MessagesScreen() {
     const { colors } = useTheme();
     const { t, language } = useLanguage();
     const { session } = useSession();
-    const { lastNotificationTime, typingThreads, setTyping, friendRequests } = useNotifications();
+    const { lastNotificationTime, typingThreads, setTyping, friendRequests, refreshNotifications } = useNotifications();
     const [threads, setThreads] = useState<ChatThread[]>([]);
     const [refreshing, setRefreshing] = useState(false);
     const [apps, setApps] = useState(DEFAULT_APPS);
@@ -241,8 +241,9 @@ export default function MessagesScreen() {
         useCallback(() => {
             if (session) {
                 loadThreads();
+                refreshNotifications();
             }
-        }, [session, loadThreads])
+        }, [session, loadThreads, refreshNotifications])
     );
 
     // Refresh when new notification arrives via SSE

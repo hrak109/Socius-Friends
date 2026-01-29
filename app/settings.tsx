@@ -123,8 +123,8 @@ export default function SettingsScreen() {
                         <Switch
                             value={isDark}
                             onValueChange={toggleTheme}
-                            thumbColor={isDark ? colors.primary : '#f4f3f4'}
-                            trackColor={{ false: '#767577', true: isDark ? '#3e3e3e' : colors.primary }}
+                            thumbColor={Platform.OS === 'ios' ? undefined : (isDark ? colors.primary : '#f4f3f4')}
+                            trackColor={{ false: '#767577', true: colors.primary }}
                         />
                     </View>
 
@@ -151,9 +151,8 @@ export default function SettingsScreen() {
                         <Switch
                             value={isTwoRow}
                             onValueChange={toggleTwoRow}
-                            thumbColor={isTwoRow ? colors.primary : '#f4f3f4'}
-
-                            trackColor={{ false: '#767577', true: Platform.OS === 'ios' ? '#3e3e3e' : (isDark ? '#3e3e3e' : colors.primary) }}
+                            thumbColor={Platform.OS === 'ios' ? undefined : (isTwoRow ? colors.primary : '#f4f3f4')}
+                            trackColor={{ false: '#767577', true: colors.primary }}
                         />
                     </View>
                 </View>
