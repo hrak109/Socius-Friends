@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { useNotifications } from '@/context/NotificationContext';
 import { SOCIUS_AVATAR_MAP } from '@/constants/avatars';
 import api from '@/services/api';
 
@@ -35,6 +36,7 @@ interface SociusFriend {
     name: string;
     avatar: string;
     role: string;
+    unread?: number;
 }
 
 interface AppSpecificChatHeadProps {
@@ -43,6 +45,7 @@ interface AppSpecificChatHeadProps {
 }
 
 export default function AppSpecificChatHead({ roleType, appContext }: AppSpecificChatHeadProps) {
+    const { lastNotificationTime } = useNotifications();
     const router = useRouter();
     const { colors } = useTheme();
     const { t } = useLanguage();
@@ -56,8 +59,6 @@ export default function AppSpecificChatHead({ roleType, appContext }: AppSpecifi
     const friendRef = useRef<SociusFriend | null>(null);
 
     // Load Friend Data
-    // Load Friend Data
-    // Load Friend Data
     const loadFriend = useCallback(async () => {
         try {
             // Add timestamp to prevent caching
@@ -65,15 +66,26 @@ export default function AppSpecificChatHead({ roleType, appContext }: AppSpecifi
             const companions = response.data || [];
 
 
-            const matchingFriend = companions.find((c: SociusFriend) => {
+            const matchingFriend = companions.find((c: any) => {
                 if (roleType === 'cal_tracker') {
                     return c.role === 'cal_tracker' || c.role === 'tracker';
                 }
                 return c.role === roleType;
             });
 
-            setFriend(matchingFriend || null);
-            friendRef.current = matchingFriend || null;
+            if (matchingFriend) {
+                setFriend({
+                    ...matchingFriend,
+                    unread: matchingFriend.unread_count || 0
+                });
+                friendRef.current = {
+                    ...matchingFriend,
+                    unread: matchingFriend.unread_count || 0
+                };
+            } else {
+                setFriend(null);
+                friendRef.current = null;
+            }
         } catch {
             setFriend(null);
         } finally {
@@ -85,6 +97,13 @@ export default function AppSpecificChatHead({ roleType, appContext }: AppSpecifi
             loadFriend();
         }, [loadFriend])
     );
+
+    // Listen for live updates via SSE context
+    useEffect(() => {
+        if (lastNotificationTime) {
+            loadFriend();
+        }
+    }, [lastNotificationTime, loadFriend]);
 
     // Position Handling
     // Note: Removed panValue ref to avoid Reanimated worklet warnings
@@ -231,6 +250,7 @@ export default function AppSpecificChatHead({ roleType, appContext }: AppSpecifi
                     { transform: pan.getTranslateTransform() }
                 ]}
                 {...panResponder.panHandlers}
+                testID="chat-head"
             >
                 <View style={[styles.avatarContainer, { borderColor: roleInfo.color }]}>
                     {friend ? (
@@ -243,6 +263,13 @@ export default function AppSpecificChatHead({ roleType, appContext }: AppSpecifi
                             <Ionicons name={roleInfo.icon as any} size={24} color="#fff" />
                             <View style={styles.plusBadge}>
                                 <Ionicons name="add" size={12} color="#fff" />
+                            </View>
+                        </View>
+                    )}
+                    {friend && (friend.unread || 0) > 0 && (
+                        <View style={styles.unreadWrapper}>
+                            <View style={styles.unreadBadge}>
+                                <Text style={styles.unreadText}>{friend.unread}</Text>
                             </View>
                         </View>
                     )}
@@ -394,5 +421,29 @@ const styles = StyleSheet.create({
     },
     cancelButtonText: {
         fontSize: 14,
+    },
+    unreadWrapper: {
+        position: 'absolute',
+        top: -3,
+        left: 17,
+        right: 0,
+        alignItems: 'center',
+        zIndex: 10,
+    },
+    unreadBadge: {
+        backgroundColor: '#FF3B30',
+        borderRadius: 9,
+        minWidth: 18,
+        height: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 4,
+        borderWidth: 1.5,
+        borderColor: '#fff',
+    },
+    unreadText: {
+        color: '#fff',
+        fontSize: 10,
+        fontWeight: 'bold',
     },
 });

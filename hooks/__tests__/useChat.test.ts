@@ -92,8 +92,15 @@ describe('useChat hook', () => {
     });
 
     it('sets initial message if provided', () => {
+        jest.useFakeTimers();
         const { result } = renderHook(() => useChat({ message_group_id: 'default', initialMessage: 'Hello' }));
+
+        act(() => {
+            jest.advanceTimersByTime(100);
+        });
+
         expect(result.current.text).toBe('Hello');
+        jest.useRealTimers();
     });
 
     it('sends a message via api.post /ask for non-friend chats', async () => {

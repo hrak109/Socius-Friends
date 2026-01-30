@@ -54,6 +54,8 @@ export default function ChatScreen() {
     const linkedApp = getAppForRole(sociusRole);
     const appTheme = sociusRole && ROLE_THEMES[sociusRole];
 
+    const normalizedInitialText = Array.isArray(initialText) ? initialText[0] : initialText;
+
     return (
         <>
             <Stack.Screen
@@ -89,7 +91,7 @@ export default function ChatScreen() {
                 }}
             />
             <ChatInterface
-                key={`${id}-${params.initialText || ''}`}
+                key={id}
                 message_group_id={message_group_id}
                 friendId={friendId}
                 companionId={companionId}
@@ -97,7 +99,7 @@ export default function ChatScreen() {
                 friendName={name}
                 friendAvatar={avatar}
                 showHeader={false}
-                initialMessage={id.startsWith('socius-') ? (initialText as string) : undefined}
+                initialMessage={normalizedInitialText || undefined}
             />
         </>
     );

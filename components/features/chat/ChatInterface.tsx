@@ -167,6 +167,7 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
                 returnKeyType="default"
                 blurOnSubmit={false}
                 editable={true}
+                autoFocus={!!initialMessage}
             />
             <TouchableOpacity
                 testID="send-button"

@@ -61,6 +61,12 @@ export default function BibleScreen() {
     const lastScrollY = useRef(0);
     const headerTranslateY = useRef(new Animated.Value(0)).current;
     const HEADER_HEIGHT = 60 + insets.top; // Include safe area inset
+    const scrollViewRef = useRef<ScrollView>(null);
+
+    // Auto-scroll to top when chapter changes
+    useEffect(() => {
+        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+    }, [selectedBookIndex, selectedChapterIndex]);
 
     const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
         if (!autoHideHeader) {
@@ -336,6 +342,7 @@ export default function BibleScreen() {
             {
                 hasValidData ? (
                     <ScrollView
+                        ref={scrollViewRef}
                         contentContainerStyle={[styles.content, { paddingTop: 60 + insets.top }]}
                         onScroll={handleScroll}
                         scrollEventThrottle={16}
@@ -407,7 +414,22 @@ export default function BibleScreen() {
                 )
             }
 
-            {renderNavModal()}
+            {/* Scroll To Top Button */}
+            {hasValidData && (
+                <TouchableOpacity
+                    style={[
+                        styles.scrollTopButton,
+                        {
+                            backgroundColor: isDark ? 'rgba(45, 45, 48, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+                            borderColor: colors.border
+                        }
+                    ]}
+                    onPress={() => scrollViewRef.current?.scrollTo({ y: 0, animated: true })}
+                >
+                    <Ionicons name="arrow-up" size={24} color={colors.primary} />
+                </TouchableOpacity>
+            )}
+
             {renderNavModal()}
             <BibleSettingsModal
                 visible={isSettingsVisible}
@@ -765,6 +787,23 @@ const styles = StyleSheet.create({
     chapterTouchable: {
         paddingHorizontal: 12,
         paddingVertical: 4,
+    },
+    scrollTopButton: {
+        position: 'absolute',
+        bottom: 36,
+        right: 20,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 0.5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 5,
+        zIndex: 90,
     },
     searchContainer: {
         flex: 1,

@@ -126,8 +126,9 @@ export function useChat({
     // Initial Message hydration
     useEffect(() => {
         if (initialMessage) {
-            setText(initialMessage);
-            // Small delay to ensure input is ready logic handled in UI component
+            setTimeout(() => {
+                setText(initialMessage);
+            }, 100);
         }
     }, [initialMessage]);
 

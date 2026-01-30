@@ -513,11 +513,14 @@ export function useBible() {
         } catch (e) { }
     };
 
-    const handleAskSocius = () => {
+    const handleAskSocius = async () => {
         if (selectedVerse === null || !currentChapter[selectedVerse]) return;
         const verseText = currentChapter[selectedVerse];
         const reference = `${currentBook?.name} ${selectedChapterIndex + 1}:${selectedVerse + 1}`;
         const query = `${reference} - "${verseText}"`;
+
+        await Clipboard.setStringAsync(query);
+
         setIsActionModalVisible(false);
         setSelectedVerse(null);
 

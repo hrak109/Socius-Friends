@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import api from '@/services/api';
 import { useLanguage } from '@/context/LanguageContext';
 import { useDebounce } from '@/hooks/useDebounce';
-import { useState, useEffect } from 'react'; // Added useState and useEffect
+import { useState, useEffect, useRef } from 'react';
 
 const { width } = Dimensions.get('window');
 const COLUMN_WIDTH = (width - 40) / 2; // 16px side margins + 8px gap
@@ -36,6 +36,9 @@ export default function NotesScreen() {
     const [editContent, setEditContent] = useState('');
     const [editTitle, setEditTitle] = useState('');
     const [isAutosaving, setIsAutosaving] = useState(false);
+
+    // Ref to track if we are currently creating a note to prevent duplicates
+    const isCreatingRef = useRef(false);
 
     const debouncedTitle = useDebounce(editTitle, 200);
     const debouncedContent = useDebounce(editContent, 200);
@@ -122,6 +125,11 @@ export default function NotesScreen() {
 
     const createEntry = async () => {
         if (editContent.trim() === '' && editTitle.trim() === '') return;
+
+        // Prevent duplicate creation if already creating
+        if (isCreatingRef.current) return;
+        isCreatingRef.current = true;
+
         setIsAutosaving(true);
         try {
             const today = new Date().toISOString();
@@ -138,12 +146,16 @@ export default function NotesScreen() {
             console.error('Failed to create note:', error);
         } finally {
             setIsAutosaving(false);
+            isCreatingRef.current = false;
         }
     };
 
     // Autosave Effect
     useEffect(() => {
         if (!modalVisible && !editingId) return;
+
+        // If currently creating, skip this effect run to avoid concurrency
+        if (isCreatingRef.current) return;
 
         if (editingId) {
             const currentEntry = entries.find((e: NoteEntry) => e.id === editingId);

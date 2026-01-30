@@ -13,8 +13,9 @@ jest.mock('@/services/api', () => ({
     delete: jest.fn(),
 }));
 
+const mockPush = jest.fn();
 jest.mock('expo-router', () => ({
-    useRouter: () => ({ back: jest.fn(), push: jest.fn() }),
+    useRouter: () => ({ back: jest.fn(), push: mockPush }),
 }));
 
 jest.mock('expo-clipboard', () => ({
@@ -91,5 +92,45 @@ describe('useBible hook', () => {
         });
 
         expect(result.current.baseFontSize).toBe(16);
+    });
+    it('calls handleAskSocius correctly', async () => {
+        const setStringAsync = require('expo-clipboard').setStringAsync;
+        // Mock api.get for christian friend
+        (require('@/services/api').get as jest.Mock).mockResolvedValue({
+            data: [{ id: '123', name: 'Jesus', avatar: 'jesus.png', role: 'christian' }]
+        });
+
+        const { result } = renderHook(() => useBible());
+
+        // Wait for christian friend load
+        await act(async () => {
+            await new Promise(resolve => setTimeout(resolve, 0));
+        });
+
+        // Setup state (select verse)
+        await act(async () => {
+            result.current.setSelectedBookIndex(0);
+            result.current.setSelectedChapterIndex(0);
+            result.current.setSelectedVerse(0);
+            // Mock currentChapter data access implicitly by implementation
+        });
+
+        if (result.current.currentChapter) {
+            // Need to ensure currentChapter has data. BIBLE_VERSIONS default is mocked/loaded.
+            // Assuming default loaded data has "In the beginning..."
+        }
+
+        await act(async () => {
+            await result.current.handleAskSocius();
+        });
+
+        expect(mockPush).toHaveBeenCalledWith({
+            pathname: '/chat/[id]',
+            params: expect.objectContaining({
+                type: 'socius',
+                sociusRole: 'christian',
+                initialText: expect.stringContaining('In the beginning')
+            })
+        } as any);
     });
 });

@@ -23,6 +23,9 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "notification": {
+        "icon": "./assets/images/icon.png"
+      },
       "package": "com.hai.socius.friends",
       "googleServicesFile": "./google-services.json",
       "launchMode": "singleTask",
