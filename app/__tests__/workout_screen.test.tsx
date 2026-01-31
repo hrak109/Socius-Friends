@@ -29,6 +29,8 @@ jest.mock('react-native', () => {
 
 // Mock Ionicons
 jest.mock('@expo/vector-icons', () => {
+    const { View } = jest.requireActual('react-native');
+    const React = jest.requireActual('react');
     const MockIonicons = (props: any) => React.createElement(View, props);
     MockIonicons.displayName = 'Ionicons';
     return {
@@ -87,6 +89,8 @@ jest.mock('@/context/LanguageContext', () => ({
 }));
 
 jest.mock('@/components/features/chat/AppSpecificChatHead', () => {
+    const { View } = jest.requireActual('react-native');
+    const React = jest.requireActual('react');
     const MockChatHead = (props: any) => React.createElement(View, { testID: 'chat-head', ...props });
     MockChatHead.displayName = 'AppSpecificChatHead';
     return MockChatHead;

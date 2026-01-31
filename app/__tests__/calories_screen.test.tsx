@@ -75,6 +75,8 @@ jest.mock('@/context/LanguageContext', () => ({
 }));
 
 jest.mock('@/components/features/chat/AppSpecificChatHead', () => {
+    const { View } = jest.requireActual('react-native');
+    const React = jest.requireActual('react');
     const MockChatHead = (props: any) => React.createElement(View, { testID: 'chat-head', ...props });
     MockChatHead.displayName = 'AppSpecificChatHead';
     return MockChatHead;

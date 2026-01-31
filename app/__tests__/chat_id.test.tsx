@@ -21,13 +21,15 @@ jest.mock('expo-router', () => ({
 }));
 
 jest.mock('react-native-gifted-chat', () => {
-    const MockGiftedChat = (props: any) => <View testID="gifted-chat" />;
+    const { View } = jest.requireActual('react-native');
+    const React = jest.requireActual('react');
+    const MockGiftedChat = (props: any) => React.createElement(View, { testID: 'gifted-chat' });
     MockGiftedChat.displayName = 'GiftedChat';
 
-    const MockAvatar = (props: any) => <View testID="avatar" />;
+    const MockAvatar = (props: any) => React.createElement(View, { testID: 'avatar' });
     MockAvatar.displayName = 'Avatar';
 
-    const MockBubble = (props: any) => <View testID="bubble" />;
+    const MockBubble = (props: any) => React.createElement(View, { testID: 'bubble' });
     MockBubble.displayName = 'Bubble';
 
     return {
