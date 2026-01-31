@@ -22,6 +22,54 @@ import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
 import AppSpecificChatHead from '@/components/features/chat/AppSpecificChatHead';
 
+function JSDatePicker({ value, onChange, onClose, colors, isDark }: { value: Date, onChange: (date: Date) => void, onClose: () => void, colors: any, isDark: boolean }) {
+    const { t } = useLanguage();
+    const d = dayjs(value);
+
+    const update = (unit: 'day' | 'month' | 'year', amount: number) => {
+        onChange(d.add(amount, unit).toDate());
+    };
+
+    return (
+        <View style={{
+            backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
+            borderRadius: 16,
+            padding: 16,
+            marginTop: 8,
+            marginBottom: 16
+        }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center' }}>
+                <View style={{ alignItems: 'center' }}>
+                    <TouchableOpacity onPress={() => update('year', 1)}><Ionicons name="chevron-up" size={24} color={colors.primary} /></TouchableOpacity>
+                    <Text style={{ color: colors.text, fontSize: 18, fontWeight: 'bold', marginVertical: 8 }}>{d.year()}</Text>
+                    <TouchableOpacity onPress={() => update('year', -1)}><Ionicons name="chevron-down" size={24} color={colors.primary} /></TouchableOpacity>
+                    <Text style={{ color: colors.textSecondary, fontSize: 10 }}>{t('common.year') || 'Year'}</Text>
+                </View>
+                <View style={{ alignItems: 'center' }}>
+                    <TouchableOpacity onPress={() => update('month', 1)}><Ionicons name="chevron-up" size={24} color={colors.primary} /></TouchableOpacity>
+                    <Text style={{ color: colors.text, fontSize: 18, fontWeight: 'bold', marginVertical: 8 }}>
+                        {t(`common.months.${['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'][d.month()]}`)}
+                    </Text>
+                    <TouchableOpacity onPress={() => update('month', -1)}><Ionicons name="chevron-down" size={24} color={colors.primary} /></TouchableOpacity>
+                    <Text style={{ color: colors.textSecondary, fontSize: 10 }}>{t('common.month') || 'Month'}</Text>
+                </View>
+                <View style={{ alignItems: 'center' }}>
+                    <TouchableOpacity onPress={() => update('day', 1)}><Ionicons name="chevron-up" size={24} color={colors.primary} /></TouchableOpacity>
+                    <Text style={{ color: colors.text, fontSize: 18, fontWeight: 'bold', marginVertical: 8 }}>{d.date()}</Text>
+                    <TouchableOpacity onPress={() => update('day', -1)}><Ionicons name="chevron-down" size={24} color={colors.primary} /></TouchableOpacity>
+                    <Text style={{ color: colors.textSecondary, fontSize: 10 }}>{t('common.day') || 'Day'}</Text>
+                </View>
+            </View>
+            <TouchableOpacity
+                onPress={onClose}
+                style={{ backgroundColor: colors.primary, borderRadius: 12, padding: 10, marginTop: 16, alignItems: 'center' }}
+            >
+                <Text style={{ color: '#fff', fontWeight: 'bold' }}>{t('common.set_date') || 'Set Date'}</Text>
+            </TouchableOpacity>
+        </View>
+    );
+}
+
 // Activity level multipliers (Harris-Benedict)
 const ACTIVITY_LEVELS: { key: ActivityLevel; multiplier: number; }[] = [
     { key: 'sedentary', multiplier: 1.2 },      // Little or no exercise
@@ -32,7 +80,7 @@ const ACTIVITY_LEVELS: { key: ActivityLevel; multiplier: number; }[] = [
 ];
 
 export default function WorkoutScreen() {
-    const { colors } = useTheme();
+    const { colors, isDark } = useTheme();
     const { t } = useLanguage();
 
     const { stats, activities, loading, saveStats, addActivity, deleteActivity } = useWorkouts();
@@ -272,7 +320,14 @@ export default function WorkoutScreen() {
 
                 {activities.length === 0 ? (
                     <View style={styles.emptyState}>
-                        <Text style={{ color: colors.textSecondary }}>{t('workout.no_activities')}</Text>
+                        <Ionicons name="barbell-outline" size={64} color={colors.textSecondary} style={{ marginBottom: 16 }} />
+                        <Text style={{ color: colors.textSecondary, marginBottom: 20 }}>{t('workout.no_activities')}</Text>
+                        <TouchableOpacity
+                            style={[styles.saveButton, { backgroundColor: colors.primary, width: '100%', paddingHorizontal: 40 }]}
+                            onPress={() => setShowAddModal(true)}
+                        >
+                            <Text style={styles.saveButtonText}>{t('workout.add_activity')}</Text>
+                        </TouchableOpacity>
                     </View>
                 ) : (
                     activities.map((item, index) => {
@@ -305,7 +360,7 @@ export default function WorkoutScreen() {
                 <KeyboardAvoidingView
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                     style={styles.modalOverlay}
-                    keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
+                    keyboardVerticalOffset={0}
                 >
                     <TouchableWithoutFeedback onPress={() => setShowStatsModal(false)}>
                         <View style={styles.modalBackdrop} />
@@ -426,7 +481,7 @@ export default function WorkoutScreen() {
                 <KeyboardAvoidingView
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                     style={styles.modalOverlay}
-                    keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
+                    keyboardVerticalOffset={0}
                 >
                     <TouchableWithoutFeedback onPress={() => setShowAddModal(false)}>
                         <View style={styles.modalBackdrop} />
@@ -452,7 +507,7 @@ export default function WorkoutScreen() {
                                     style={[styles.input, { backgroundColor: colors.inputBackground, color: colors.text, borderColor: colors.border }]}
                                     value={activityName}
                                     onChangeText={setActivityName}
-                                    placeholder="Running, Gym, etc."
+                                    placeholder={t('workout.placeholder_name')}
                                     placeholderTextColor={colors.textSecondary}
                                     autoFocus
                                 />
@@ -460,24 +515,48 @@ export default function WorkoutScreen() {
 
                             <View style={{ marginBottom: 20 }}>
                                 <Text style={[styles.inputLabel, { color: colors.text }]}>{t('common.date') || 'Date'}</Text>
-                                <TouchableOpacity
-                                    style={[styles.input, { backgroundColor: colors.inputBackground, borderColor: colors.border, justifyContent: 'center' }]}
-                                    onPress={() => setShowDatePicker(true)}
-                                >
-                                    <Text style={{ color: colors.text, fontSize: 16 }}>
-                                        {selectedDate.toLocaleDateString()}
-                                    </Text>
-                                </TouchableOpacity>
-                                {showDatePicker && (
-                                    <DateTimePicker
-                                        value={selectedDate}
-                                        mode="date"
-                                        display="default"
-                                        onChange={(event, date) => {
-                                            setShowDatePicker(false);
-                                            if (date) setSelectedDate(date);
-                                        }}
-                                    />
+                                {Platform.OS === 'ios' ? (
+                                    <View>
+                                        <TouchableOpacity
+                                            style={[styles.input, { backgroundColor: colors.inputBackground, borderColor: colors.border, justifyContent: 'center' }]}
+                                            onPress={() => setShowDatePicker(!showDatePicker)}
+                                        >
+                                            <Text style={{ color: colors.text, fontSize: 16 }}>
+                                                {selectedDate.toLocaleDateString()}
+                                            </Text>
+                                        </TouchableOpacity>
+                                        {showDatePicker && (
+                                            <JSDatePicker
+                                                value={selectedDate}
+                                                onChange={setSelectedDate}
+                                                onClose={() => setShowDatePicker(false)}
+                                                colors={colors}
+                                                isDark={isDark}
+                                            />
+                                        )}
+                                    </View>
+                                ) : (
+                                    <>
+                                        <TouchableOpacity
+                                            style={[styles.input, { backgroundColor: colors.inputBackground, borderColor: colors.border, justifyContent: 'center' }]}
+                                            onPress={() => setShowDatePicker(true)}
+                                        >
+                                            <Text style={{ color: colors.text, fontSize: 16 }}>
+                                                {selectedDate.toLocaleDateString()}
+                                            </Text>
+                                        </TouchableOpacity>
+                                        {showDatePicker && (
+                                            <DateTimePicker
+                                                value={selectedDate}
+                                                mode="date"
+                                                display="default"
+                                                onChange={(event, date) => {
+                                                    setShowDatePicker(false);
+                                                    if (date) setSelectedDate(date);
+                                                }}
+                                            />
+                                        )}
+                                    </>
                                 )}
                             </View>
 
@@ -489,7 +568,7 @@ export default function WorkoutScreen() {
                                         value={durationInput}
                                         onChangeText={setDurationInput}
                                         keyboardType="numeric"
-                                        placeholder="30"
+                                        placeholder={t('workout.placeholder_duration')}
                                         placeholderTextColor={colors.textSecondary}
                                     />
                                 </View>
@@ -501,7 +580,7 @@ export default function WorkoutScreen() {
                                         value={caloriesInput}
                                         onChangeText={setCaloriesInput}
                                         keyboardType="numeric"
-                                        placeholder="200"
+                                        placeholder={t('workout.placeholder_calories')}
                                         placeholderTextColor={colors.textSecondary}
                                     />
                                 </View>
@@ -561,7 +640,8 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         padding: 24,
-        paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+        paddingBottom: Platform.OS === 'ios' ? 25 : 24,
+        maxHeight: '85%',
     },
     modalHeader: {
         flexDirection: 'row',

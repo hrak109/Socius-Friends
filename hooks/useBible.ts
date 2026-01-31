@@ -7,7 +7,7 @@ import api from '@/services/api';
 import { useRouter } from 'expo-router';
 
 // Import Bible Data
-import KRV from '@/constants/bible/bible.json';
+import MODERN from '@/constants/bible/modern_korean.json';
 import NIV from '@/constants/bible/niv.json';
 import GAEYEOK from '@/constants/bible/gaeyeok.json';
 import SAEBUNYEOK from '@/constants/bible/saebunyeok.json';
@@ -23,7 +23,7 @@ interface BibleData {
 }
 
 export const BIBLE_VERSIONS: { id: string; name: string; data: BibleData }[] = [
-    { id: 'KRV', name: 'Korean Revised', data: KRV as unknown as BibleData },
+    { id: 'MODERN', name: 'Modern Korean', data: MODERN as unknown as BibleData },
     { id: 'NIV', name: 'New International', data: NIV as unknown as BibleData },
     { id: 'GAE', name: 'Gaeyeok', data: GAEYEOK as unknown as BibleData },
     { id: 'SAE', name: 'Saebunyeok', data: SAEBUNYEOK as unknown as BibleData },
@@ -337,7 +337,7 @@ export function useBible() {
 
         // References for search (English and Korean)
         const refNIV = BIBLE_VERSIONS.find(v => v.id === 'NIV')?.data.books;
-        const refKRV = BIBLE_VERSIONS.find(v => v.id === 'KRV')?.data.books;
+        const refMODERN = BIBLE_VERSIONS.find(v => v.id === 'MODERN')?.data.books;
         const currentBooks = currentBible?.books;
 
         if (!currentBooks) return null;
@@ -348,7 +348,7 @@ export function useBible() {
             const namesToCheck = [
                 currentBooks[i]?.name?.toLowerCase(),
                 refNIV?.[i]?.name?.toLowerCase(),
-                refKRV?.[i]?.name?.toLowerCase()
+                refMODERN?.[i]?.name?.toLowerCase()
             ].filter(Boolean) as string[];
 
             const isExact = namesToCheck.includes(textPart);
@@ -382,7 +382,7 @@ export function useBible() {
 
         // Helper for cross-lingual contains check
         const refNIV = BIBLE_VERSIONS.find(v => v.id === 'NIV')?.data.books;
-        const refKRV = BIBLE_VERSIONS.find(v => v.id === 'KRV')?.data.books;
+        const refMODERN = BIBLE_VERSIONS.find(v => v.id === 'MODERN')?.data.books;
 
         if (parsed) {
             const { bookIndex, bookName, chapter } = parsed;
@@ -412,7 +412,7 @@ export function useBible() {
                 const namesToCheck = [
                     book.name.toLowerCase(),
                     refNIV?.[bookIndex]?.name?.toLowerCase(),
-                    refKRV?.[bookIndex]?.name?.toLowerCase()
+                    refMODERN?.[bookIndex]?.name?.toLowerCase()
                 ].filter(Boolean) as string[];
 
                 if (namesToCheck.some(name => name.includes(query))) {

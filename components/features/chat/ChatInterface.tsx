@@ -151,7 +151,11 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
 
     // Custom input toolbar to fix iOS 26 keyboard input issues
     const renderInputToolbar = () => (
-        <View style={[styles.customInputToolbar, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
+        <View style={[
+            styles.customInputToolbar,
+            { backgroundColor: colors.card, borderTopColor: colors.border },
+            Platform.OS === 'ios' && { paddingBottom: 25 }
+        ]}>
             <TextInput
                 ref={textInputRef}
                 style={[styles.customTextInput, {
@@ -218,37 +222,130 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
     };
 
     return (
-        <KeyboardAvoidingView
-            style={{ flex: 1, backgroundColor: colors.background }}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? (showHeader ? 120 : 120) : 0}
+        <View
+            style={[styles.container, { backgroundColor: colors.background }]}
         >
-            <SafeAreaView
-                style={[styles.container, { backgroundColor: colors.background }]}
-                edges={['left', 'right']}
-            >
-                {showHeader && (
-                    <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-                        {onClose ? (
-                            <TouchableOpacity onPress={onClose} style={styles.backButton}>
-                                {isModal ? (
-                                    <Ionicons name="close" size={24} color={colors.text} />
-                                ) : (
-                                    <Ionicons name="arrow-back" size={24} color={colors.text} />
-                                )}
-                            </TouchableOpacity>
-                        ) : (
-                            <View style={{ width: 40 }} />
-                        )}
-                        <Text style={[styles.headerTitle, { color: colors.text }]}>
-                            {message_group_id && message_group_id !== 'default'
-                                ? `${t('chat.title')} (${message_group_id.charAt(0).toUpperCase() + message_group_id.slice(1)})`
-                                : t('chat.title')}
-                        </Text>
+            {showHeader && (
+                <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+                    {onClose ? (
+                        <TouchableOpacity onPress={onClose} style={styles.backButton}>
+                            {isModal ? (
+                                <Ionicons name="close" size={24} color={colors.text} />
+                            ) : (
+                                <Ionicons name="arrow-back" size={24} color={colors.text} />
+                            )}
+                        </TouchableOpacity>
+                    ) : (
                         <View style={{ width: 40 }} />
-                    </View>
-                )}
+                    )}
+                    <Text style={[styles.headerTitle, { color: colors.text }]}>
+                        {message_group_id && message_group_id !== 'default'
+                            ? `${t('chat.title')} (${message_group_id.charAt(0).toUpperCase() + message_group_id.slice(1)})`
+                            : t('chat.title')}
+                    </Text>
+                    <View style={{ width: 40 }} />
+                </View>
+            )}
 
+            {Platform.OS === 'ios' ? (
+                <KeyboardAvoidingView
+                    style={{ flex: 1 }}
+                    behavior="padding"
+                    keyboardVerticalOffset={100}
+                >
+                    <GiftedChat
+                        messages={messages}
+                        text={text}
+                        textInputRef={textInputRef}
+                        onInputTextChanged={setText}
+                        onSend={(messages) => onSend(messages)}
+                        user={currentUser}
+                        isTyping={isTyping}
+                        locale={language}
+                        {...{ isDayAnimationEnabled: false } as any}
+                        renderBubble={renderBubble}
+                        renderAvatar={renderAvatar}
+                        renderDay={renderDay}
+                        loadEarlier={canLoadMore}
+                        infiniteScroll
+                        onLoadEarlier={loadEarlierMessages}
+                        loadEarlierLabel={t('chat.load_earlier')}
+                        isLoadingEarlier={isLoadingEarlier}
+                        renderInputToolbar={renderInputToolbar}
+                        renderFooter={() => {
+                            if (!isTyping) return null;
+
+                            let source;
+                            if (friendAvatar && PROFILE_AVATAR_MAP[friendAvatar]) {
+                                source = PROFILE_AVATAR_MAP[friendAvatar];
+                            } else if (friendAvatar && SOCIUS_AVATAR_MAP[friendAvatar]) {
+                                source = SOCIUS_AVATAR_MAP[friendAvatar];
+                            } else if (friendAvatar && friendAvatar.startsWith('http')) {
+                                source = { uri: friendAvatar };
+                            } else {
+                                source = SOCIUS_AVATAR_MAP['socius-avatar-0'];
+                            }
+
+                            return (
+                                <View style={{ flexDirection: 'row', alignItems: 'flex-end', margin: 10, marginLeft: 14 }}>
+                                    <SociusAvatar source={source} />
+                                    <View style={{
+                                        backgroundColor: colors.inputBackground,
+                                        marginLeft: 8,
+                                        padding: 10,
+                                        borderRadius: 15,
+                                        borderBottomLeftRadius: 0
+                                    }}>
+                                        <TypingIndicator color={colors.textSecondary} />
+                                    </View>
+                                </View>
+                            );
+                        }}
+                        placeholder={t('chat.placeholder')}
+                        showUserAvatar={true}
+                        alwaysShowSend
+                        isScrollToBottomEnabled
+                        renderUsernameOnMessage={true}
+                        timeTextStyle={{
+                            left: { color: colors.textSecondary },
+                            right: { color: 'rgba(255, 255, 255, 0.7)' }
+                        }}
+                        keyboardShouldPersistTaps="handled"
+                        bottomOffset={insets.bottom}
+                        messagesContainerStyle={{ flex: 1 }}
+                        dateFormat={language === 'ko' ? 'D일 M월' : 'MMMM D'}
+                        dateFormatCalendar={{
+                            sameDay: language === 'ko' ? `[${t('common.today') || '오늘'}]` : '[Today]',
+                            lastDay: language === 'ko' ? `[${t('common.yesterday') || '어제'}]` : '[Yesterday]',
+                            lastWeek: language === 'ko' ? 'M[월] D[일]' : 'MMMM D',
+                            sameElse: language === 'ko' ? 'M[월] D[일]' : 'MMMM D',
+                        }}
+
+                        onLongPress={(context, message) => {
+                            if (message.text) {
+                                Clipboard.setStringAsync(message.text);
+                                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                                Alert.alert(t('common.success') || 'Success', t('chat.copy_success') || 'Text copied to clipboard');
+                            }
+                        }}
+                        listViewProps={{
+                            removeClippedSubviews: false,
+                            initialNumToRender: 8,
+                            maxToRenderPerBatch: 4,
+                            windowSize: 3,
+                            updateCellsBatchingPeriod: 150,
+                            nestedScrollEnabled: true,
+                            scrollEventThrottle: 16,
+                            keyboardDismissMode: 'none',
+                            keyboardShouldPersistTaps: 'handled',
+                        } as any}
+                        shouldUpdateMessage={(props, nextProps) =>
+                            props.currentMessage._id !== nextProps.currentMessage._id
+                        }
+                        {...(Platform.OS === 'ios' ? { isKeyboardInternallyHandled: false } : {})}
+                    />
+                </KeyboardAvoidingView>
+            ) : (
                 <GiftedChat
                     messages={messages}
                     text={text}
@@ -270,7 +367,6 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
                     renderInputToolbar={renderInputToolbar}
                     renderFooter={() => {
                         if (!isTyping) return null;
-
                         let source;
                         if (friendAvatar && PROFILE_AVATAR_MAP[friendAvatar]) {
                             source = PROFILE_AVATAR_MAP[friendAvatar];
@@ -281,7 +377,6 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
                         } else {
                             source = SOCIUS_AVATAR_MAP['socius-avatar-0'];
                         }
-
                         return (
                             <View style={{ flexDirection: 'row', alignItems: 'flex-end', margin: 10, marginLeft: 14 }}>
                                 <SociusAvatar source={source} />
@@ -300,14 +395,15 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
                     placeholder={t('chat.placeholder')}
                     showUserAvatar={true}
                     alwaysShowSend
-                    isScrollToBottomEnabled
+                    isScrollToBottomEnabled={false}
                     renderUsernameOnMessage={true}
                     timeTextStyle={{
                         left: { color: colors.textSecondary },
                         right: { color: 'rgba(255, 255, 255, 0.7)' }
                     }}
                     keyboardShouldPersistTaps="handled"
-                    bottomOffset={Platform.OS === 'ios' && !isKeyboardVisible ? insets.bottom : 0}
+                    bottomOffset={0}
+                    messagesContainerStyle={{ flex: 1 }}
                     dateFormat={language === 'ko' ? 'D일 M월' : 'MMMM D'}
                     dateFormatCalendar={{
                         sameDay: language === 'ko' ? `[${t('common.today') || '오늘'}]` : '[Today]',
@@ -315,7 +411,6 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
                         lastWeek: language === 'ko' ? 'M[월] D[일]' : 'MMMM D',
                         sameElse: language === 'ko' ? 'M[월] D[일]' : 'MMMM D',
                     }}
-
                     onLongPress={(context, message) => {
                         if (message.text) {
                             Clipboard.setStringAsync(message.text);
@@ -324,20 +419,19 @@ export default function ChatInterface({ onClose, isModal = false, initialMessage
                         }
                     }}
                     listViewProps={{
-                        removeClippedSubviews: Platform.OS === 'android',
-                        initialNumToRender: 8,
-                        maxToRenderPerBatch: 4,
-                        windowSize: 3,
-                        updateCellsBatchingPeriod: 150,
-                        nestedScrollEnabled: true,
-                        scrollEventThrottle: 16,
+                        removeClippedSubviews: true,
+                        initialNumToRender: 20,
+                        maxToRenderPerBatch: 20,
+                        windowSize: 20,
+                        keyboardDismissMode: 'none',
+                        keyboardShouldPersistTaps: 'handled',
                     } as any}
                     shouldUpdateMessage={(props, nextProps) =>
                         props.currentMessage._id !== nextProps.currentMessage._id
                     }
                 />
-            </SafeAreaView>
-        </KeyboardAvoidingView>
+            )}
+        </View>
     );
 }
 

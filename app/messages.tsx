@@ -244,18 +244,8 @@ export default function MessagesScreen() {
                 // Restore typing indicators for Socius threads where we're waiting for response
                 sociusThreads.forEach(thread => {
                     if (thread.lastMessageIsFromUser) {
-                        // Check if the last message was sent recently (e.g. within 5 minutes)
-                        // If it's older, assume the bot failed or stopped typing
-                        const lastMsgTime = thread.lastMessageTime ? new Date(thread.lastMessageTime).getTime() : 0;
-                        const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
-
-                        if (lastMsgTime > fiveMinutesAgo) {
-                            // Last message is from user & recent = waiting for bot response
-                            setTyping(thread.id, true);
-                        } else {
-                            // Too old, clear it
-                            setTyping(thread.id, false);
-                        }
+                        // Last message is from user = still waiting for bot response
+                        setTyping(thread.id, true);
                     } else {
                         // Bot has replied, ensure typing is cleared
                         setTyping(thread.id, false);
