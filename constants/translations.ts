@@ -170,6 +170,10 @@ export const translations = {
             custom: 'Custom Entry',
             placeholder_name: 'e.g. Banana',
             placeholder_calories: 'e.g. 105',
+            kcal: 'kcal',
+            small_portion: 'Small',
+            medium_portion: 'Medium',
+            large_portion: 'Large',
         },
 
 
@@ -280,6 +284,8 @@ export const translations = {
             placeholder_name: 'e.g. Running, Gym',
             placeholder_duration: 'e.g. 30',
             placeholder_calories: 'e.g. 200',
+            edit_activity: 'Edit Activity',
+            update: 'Update',
         },
         passwords: {
             title: 'Passwords',
@@ -592,6 +598,12 @@ export const translations = {
             custom: '직접 입력',
             placeholder_name: '예: 바나나',
             placeholder_calories: '예: 105',
+            edit_entry: '기록 수정',
+            update: '수정',
+            kcal: 'kcal',
+            small_portion: '소량',
+            medium_portion: '중간',
+            large_portion: '대량',
         },
         profile: {
             title: '프로필',
@@ -700,6 +712,8 @@ export const translations = {
             placeholder_name: '예: 달리기, 헬스',
             placeholder_duration: '예: 30',
             placeholder_calories: '예: 200',
+            edit_activity: '활동 수정',
+            update: '수정',
         },
         passwords: {
             title: '비밀번호',

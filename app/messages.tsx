@@ -69,14 +69,19 @@ export default function MessagesScreen() {
     const [threads, setThreads] = useState<ChatThread[]>([]);
     const [refreshing, setRefreshing] = useState(false);
     const [apps, setApps] = useState(DEFAULT_APPS);
-    const [isTwoRow, setIsTwoRow] = useState(false);
+    const [isTwoRow, setIsTwoRow] = useState(true);
 
     const loadAppsOrder = async () => {
         try {
-            const twoRow = await AsyncStorage.getItem('user_apps_two_row');
+            // Batch read instead of 2 separate calls - reduces iOS thread blocking
+            const keys = ['user_apps_two_row', APPS_ORDER_KEY];
+            const results = await AsyncStorage.multiGet(keys);
+
+            const twoRow = results[0][1];
+            const saved = results[1][1];
+
             setIsTwoRow(twoRow === 'true');
 
-            const saved = await AsyncStorage.getItem(APPS_ORDER_KEY);
             if (saved) {
                 const savedOrder = JSON.parse(saved);
                 // Merge with default to ensure new apps appear

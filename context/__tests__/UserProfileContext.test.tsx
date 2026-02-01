@@ -11,6 +11,11 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
     getItem: jest.fn(),
     setItem: jest.fn(),
     removeItem: jest.fn(),
+    multiGet: jest.fn().mockResolvedValue([
+        ['user_display_name', null],
+        ['user_username', null],
+        ['user_display_avatar', null]
+    ]),
 }));
 
 describe('UserProfileContext', () => {

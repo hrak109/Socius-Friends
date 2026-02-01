@@ -143,7 +143,8 @@ export function useCalories() {
         }
 
         const now = new Date();
-        const dateStr = date || now.toISOString().split('T')[0];
+        // Use local date format (YYYY-MM-DD) to avoid timezone offset issues
+        const dateStr = date || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         const timestamp = now.getTime();
         const clientId = `${timestamp}-${Math.floor(Math.random() * 10000)}`;
 
@@ -202,21 +203,40 @@ export function useCalories() {
         }
     }, []);
 
-    const updateEntry = useCallback(async (id: string, food: string, calories: number) => {
+    const updateEntry = useCallback(async (id: string, food: string, calories: number, date?: string) => {
         // Find existing to get metadata
-        setEntries(prev => {
-            const existing = prev.find(e => e.id === id);
-            if (!existing) return prev;
+        let existingEntry: CalorieEntry | undefined;
 
-            const updatedEntry = { ...existing, food, calories, synced: false }; // Mark unsynced on edit
+        setEntries(prev => {
+            existingEntry = prev.find(e => e.id === id);
+            if (!existingEntry) return prev;
+
+            const updatedEntry: CalorieEntry = {
+                ...existingEntry,
+                food,
+                calories,
+                date: date || existingEntry.date,
+                synced: false
+            };
             const updatedList = prev.map(e => e.id === id ? updatedEntry : e);
             saveToStorage(updatedList);
             return updatedList;
         });
 
         try {
-            // Fetch current to sync? Or assume we can just post.
-            // Ideally we should syncPending logic pick this up.
+            // Call API to update the entry
+            await api.put(`/calories/${id}`, {
+                food,
+                calories,
+                date: date || existingEntry?.date
+            });
+
+            // Mark as synced on success
+            setEntries(prev => {
+                const updated = prev.map(e => e.id === id ? { ...e, synced: true } : e);
+                saveToStorage(updated);
+                return updated;
+            });
         } catch (error) {
             console.error('Failed to update calorie entry online', error);
         }

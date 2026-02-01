@@ -13,6 +13,8 @@ jest.mock('@/services/api', () => ({
 jest.mock('@react-native-async-storage/async-storage', () => ({
     getItem: jest.fn(),
     setItem: jest.fn(),
+    multiGet: jest.fn(),
+    multiSet: jest.fn(),
 }));
 
 describe('useWorkouts hook', () => {
@@ -24,10 +26,12 @@ describe('useWorkouts hook', () => {
         const mockStats = { weight: 70, height: 175, age: 30, gender: 'male', activityLevel: 'moderate' };
         const mockActivities = [{ id: '1', name: 'Run', duration: 30, calories: 300, date: '2026-01-01', timestamp: 12345, synced: true }];
 
-        (AsyncStorage.getItem as jest.Mock).mockImplementation((key) => {
-            if (key === 'user_physical_stats') return Promise.resolve(JSON.stringify(mockStats));
-            if (key === 'workout_activities') return Promise.resolve(JSON.stringify(mockActivities));
-            return Promise.resolve(null);
+        (AsyncStorage.multiGet as jest.Mock).mockImplementation((keys: string[]) => {
+            return Promise.resolve(keys.map((key) => {
+                if (key === 'user_physical_stats') return [key, JSON.stringify(mockStats)];
+                if (key === 'workout_activities') return [key, JSON.stringify(mockActivities)];
+                return [key, null];
+            }));
         });
 
         (api.get as jest.Mock).mockImplementation((url) => {
@@ -51,8 +55,7 @@ describe('useWorkouts hook', () => {
     it('saves physical stats and syncs to backend', async () => {
         const newStats = { weight: 75, height: 180, age: 31, gender: 'male', activityLevel: 'active' };
 
-        // Mock initial load
-        (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
+        (AsyncStorage.multiGet as jest.Mock).mockResolvedValue([['user_physical_stats', null], ['workout_activities', null]]);
         (api.get as jest.Mock).mockResolvedValue({ data: null });
 
         const { result } = renderHook(() => useWorkouts());
@@ -70,7 +73,7 @@ describe('useWorkouts hook', () => {
     });
 
     it('adds a workout activity and syncs to backend', async () => {
-        (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
+        (AsyncStorage.multiGet as jest.Mock).mockResolvedValue([['user_physical_stats', null], ['workout_activities', null]]);
         (api.get as jest.Mock).mockResolvedValue({ data: [] });
 
         const { result } = renderHook(() => useWorkouts());
@@ -98,9 +101,11 @@ describe('useWorkouts hook', () => {
     it('deletes a workout activity', async () => {
         const mockActivities = [{ id: 'delete-me', name: 'Swim', duration: 20, calories: 200, date: '2026-01-01', timestamp: 12345, synced: true }];
 
-        (AsyncStorage.getItem as jest.Mock).mockImplementation((key) => {
-            if (key === 'workout_activities') return Promise.resolve(JSON.stringify(mockActivities));
-            return Promise.resolve(null);
+        (AsyncStorage.multiGet as jest.Mock).mockImplementation((keys: string[]) => {
+            return Promise.resolve(keys.map((key) => {
+                if (key === 'workout_activities') return [key, JSON.stringify(mockActivities)];
+                return [key, null];
+            }));
         });
         (api.get as jest.Mock).mockResolvedValue({ data: [] });
 

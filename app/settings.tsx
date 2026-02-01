@@ -17,7 +17,7 @@ export default function SettingsScreen() {
     const { t, language, setLanguage } = useLanguage();
 
     // Settings State
-    const [isTwoRow, setIsTwoRow] = React.useState(false);
+    const [isTwoRow, setIsTwoRow] = React.useState(true);
 
     // Easter Egg State
     const [devTapCount, setDevTapCount] = React.useState(0);

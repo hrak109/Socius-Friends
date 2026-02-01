@@ -83,11 +83,13 @@ export default function WorkoutScreen() {
     const { colors, isDark } = useTheme();
     const { t } = useLanguage();
 
-    const { stats, activities, loading, saveStats, addActivity, deleteActivity } = useWorkouts();
+    const { stats, activities, loading, saveStats, addActivity, updateActivity, deleteActivity } = useWorkouts();
 
     // Modals
     const [showStatsModal, setShowStatsModal] = useState(false);
     const [showAddModal, setShowAddModal] = useState(false);
+    const [showCalcsModal, setShowCalcsModal] = useState(false);
+    const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
 
     // Form inputs
     const [weightInput, setWeightInput] = useState('');
@@ -137,14 +139,28 @@ export default function WorkoutScreen() {
             return;
         }
 
-        const dateStr = selectedDate.toISOString().split('T')[0];
-        await addActivity(activityName, parseInt(durationInput) || 0, parseInt(caloriesInput), dateStr);
+        const dateStr = dayjs(selectedDate).format('YYYY-MM-DD');
+
+        if (editingActivity) {
+            // Update existing activity
+            await updateActivity(
+                editingActivity.id,
+                activityName,
+                parseInt(durationInput) || 0,
+                parseInt(caloriesInput),
+                dateStr
+            );
+        } else {
+            // Add new activity
+            await addActivity(activityName, parseInt(durationInput) || 0, parseInt(caloriesInput), dateStr);
+        }
 
         // Reset & Close
         setActivityName('');
         setDurationInput('');
         setCaloriesInput('');
         setSelectedDate(new Date());
+        setEditingActivity(null);
         setShowAddModal(false);
     };
 
@@ -161,6 +177,16 @@ export default function WorkoutScreen() {
                 }
             ]
         );
+    };
+
+    const handleEditActivity = (activity: Activity) => {
+        setEditingActivity(activity);
+        setActivityName(activity.name);
+        setDurationInput(activity.duration.toString());
+        setCaloriesInput(activity.calories.toString());
+        // Parse the activity's date in local time
+        setSelectedDate(dayjs(activity.date).toDate());
+        setShowAddModal(true);
     };
 
     // --- Calculations ---
@@ -202,6 +228,7 @@ export default function WorkoutScreen() {
     const renderActivityItem = ({ item }: { item: Activity }) => (
         <TouchableOpacity
             style={[styles.activityItem, { backgroundColor: colors.card }]}
+            onPress={() => handleEditActivity(item)}
             onLongPress={() => handleDeleteActivity(item.id)}
         >
             <View style={styles.activityIcon}>
@@ -232,22 +259,9 @@ export default function WorkoutScreen() {
             />
 
             <ScrollView contentContainerStyle={styles.scrollContent}>
-                {/* Formula Info */}
-                {stats && (
-                    <View style={[styles.formulaCard, { backgroundColor: colors.card }]}>
-                        <Text style={[styles.formulaTitle, { color: colors.text }]}>📊 {t('workout.your_stats')}</Text>
-                        <Text style={[styles.formulaText, { color: colors.textSecondary }]}>
-                            BMR = 10×{stats.weight} + 6.25×{stats.height} - 5×{stats.age} {stats.gender === 'male' ? '+ 5' : '- 161'}
-                        </Text>
-                        <Text style={[styles.formulaText, { color: colors.textSecondary }]}>
-                            TDEE = {bmr} × {ACTIVITY_LEVELS.find(l => l.key === stats.activityLevel)?.multiplier || 1.55}
-                        </Text>
-                    </View>
-                )}
-
                 {/* Visual Header - Row 1: BMR & TDEE */}
                 <View style={styles.headerStatsRow}>
-                    {/* BMR Card */}
+                    {/* BMR Card - Opens stats editing modal */}
                     <TouchableOpacity
                         style={[styles.statCard, { backgroundColor: colors.card }]}
                         onPress={() => {
@@ -261,12 +275,12 @@ export default function WorkoutScreen() {
                         <Text style={[styles.statUnit, { color: colors.textSecondary }]}>kcal/{t('workout.day')}</Text>
                     </TouchableOpacity>
 
-                    {/* TDEE Card */}
+                    {/* TDEE Card - Opens calculations modal */}
                     <TouchableOpacity
                         style={[styles.statCard, { backgroundColor: colors.card }]}
                         onPress={() => {
                             if (stats) {
-                                setShowStatsModal(true);
+                                setShowCalcsModal(true);
                             }
                         }}
                     >
@@ -488,13 +502,16 @@ export default function WorkoutScreen() {
                     </TouchableWithoutFeedback>
                     <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
                         <View style={styles.modalHeader}>
-                            <Text style={[styles.modalTitle, { color: colors.text, marginBottom: 0 }]}>{t('workout.add_activity')}</Text>
+                            <Text style={[styles.modalTitle, { color: colors.text, marginBottom: 0 }]}>
+                                {editingActivity ? t('workout.edit_activity') : t('workout.add_activity')}
+                            </Text>
                             <TouchableOpacity onPress={() => {
                                 setShowAddModal(false);
                                 setActivityName('');
                                 setDurationInput('');
                                 setCaloriesInput('');
                                 setSelectedDate(new Date());
+                                setEditingActivity(null);
                             }}>
                                 <Ionicons name="close" size={24} color={colors.textSecondary} />
                             </TouchableOpacity>
@@ -587,11 +604,69 @@ export default function WorkoutScreen() {
                             </View>
 
                             <TouchableOpacity style={[styles.saveButton, { backgroundColor: colors.primary, marginTop: 0 }]} onPress={handleAddActivity}>
-                                <Text style={styles.saveButtonText}>{t('workout.save')}</Text>
+                                <Text style={styles.saveButtonText}>
+                                    {editingActivity ? t('workout.update') : t('workout.save')}
+                                </Text>
                             </TouchableOpacity>
                         </ScrollView>
                     </View>
                 </KeyboardAvoidingView>
+            </Modal>
+
+            {/* Calculations Modal */}
+            <Modal visible={showCalcsModal} animationType="fade" transparent onRequestClose={() => setShowCalcsModal(false)}>
+                <TouchableWithoutFeedback onPress={() => setShowCalcsModal(false)}>
+                    <View style={styles.calcsModalOverlay}>
+                        <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
+                            <View style={[styles.calcsModalContent, { backgroundColor: colors.card }]}>
+                                <Text style={[styles.calcsTitle, { color: colors.text }]}>📊 {t('workout.your_stats')}</Text>
+
+                                {stats && (
+                                    <>
+                                        <View style={styles.calcRow}>
+                                            <Text style={[styles.calcLabel, { color: colors.textSecondary }]}>BMR Formula:</Text>
+                                            <Text style={[styles.calcFormula, { color: colors.text }]}>
+                                                10×{stats.weight} + 6.25×{stats.height} - 5×{stats.age} {stats.gender === 'male' ? '+ 5' : '- 161'}
+                                            </Text>
+                                        </View>
+
+                                        <View style={styles.calcRow}>
+                                            <Text style={[styles.calcLabel, { color: colors.textSecondary }]}>BMR =</Text>
+                                            <Text style={[styles.calcValue, { color: colors.primary }]}>{bmr} kcal</Text>
+                                        </View>
+
+                                        <View style={[styles.calcDivider, { backgroundColor: colors.border }]} />
+
+                                        <View style={styles.calcRow}>
+                                            <Text style={[styles.calcLabel, { color: colors.textSecondary }]}>TDEE Formula:</Text>
+                                            <Text style={[styles.calcFormula, { color: colors.text }]}>
+                                                {bmr} × {ACTIVITY_LEVELS.find(l => l.key === stats.activityLevel)?.multiplier || 1.55}
+                                            </Text>
+                                        </View>
+
+                                        <View style={styles.calcRow}>
+                                            <Text style={[styles.calcLabel, { color: colors.textSecondary }]}>TDEE =</Text>
+                                            <Text style={[styles.calcValue, { color: '#34C759' }]}>{tdee} kcal</Text>
+                                        </View>
+
+                                        <View style={[styles.calcDivider, { backgroundColor: colors.border }]} />
+
+                                        <Text style={[styles.calcActivityLevel, { color: colors.textSecondary }]}>
+                                            Activity: {t(`workout.activity_${stats.activityLevel}`)}
+                                        </Text>
+                                    </>
+                                )}
+
+                                <TouchableOpacity
+                                    style={[styles.calcsCloseButton, { backgroundColor: colors.primary }]}
+                                    onPress={() => setShowCalcsModal(false)}
+                                >
+                                    <Text style={styles.calcsCloseButtonText}>{t('common.close')}</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </TouchableWithoutFeedback>
+                    </View>
+                </TouchableWithoutFeedback>
             </Modal>
 
             {/* Workout Friend Chat Head */}
@@ -670,4 +745,33 @@ const styles = StyleSheet.create({
     activityLevelContainer: { marginTop: 16 },
     activityLevelRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
     activityLevelBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: '#ddd' },
+    // Calculations Modal Styles
+    calcsModalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-start',
+        paddingTop: 140, // Position below the TDEE card area
+        paddingHorizontal: 16,
+    },
+    calcsModalContent: {
+        width: '100%',
+        maxWidth: 400,
+        padding: 20,
+        borderRadius: 16,
+        alignSelf: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 8,
+    },
+    calcsTitle: { fontSize: 18, fontWeight: '700', marginBottom: 20, textAlign: 'center' },
+    calcRow: { marginBottom: 8 },
+    calcLabel: { fontSize: 13, fontWeight: '500', marginBottom: 2 },
+    calcFormula: { fontSize: 14, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
+    calcValue: { fontSize: 20, fontWeight: '700' },
+    calcDivider: { height: 1, marginVertical: 16 },
+    calcActivityLevel: { fontSize: 14, textAlign: 'center', marginTop: 8 },
+    calcsCloseButton: { marginTop: 20, paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
+    calcsCloseButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 });

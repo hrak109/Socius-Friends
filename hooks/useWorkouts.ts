@@ -109,8 +109,12 @@ export function useWorkouts() {
 
     const loadData = useCallback(async () => {
         try {
-            const savedStats = await AsyncStorage.getItem(STATS_KEY);
-            const savedActivities = await AsyncStorage.getItem(ACTIVITIES_KEY);
+            // Batch read instead of 2 separate calls - reduces iOS thread blocking
+            const keys = [STATS_KEY, ACTIVITIES_KEY];
+            const results = await AsyncStorage.multiGet(keys);
+
+            const savedStats = results[0][1];
+            const savedActivities = results[1][1];
 
             // 1. Load Local
             if (savedStats) {
@@ -163,8 +167,9 @@ export function useWorkouts() {
     const addActivityItem = useCallback(async (name: string, duration: number, calories: number, date?: string) => {
         const timestamp = Date.now();
         const clientId = `${timestamp}-${Math.floor(Math.random() * 10000)}`;
-        // Use provided date or today
-        const dateStr = date || new Date().toISOString().split('T')[0];
+        // Use provided date or today (using local date, not UTC)
+        const now = new Date();
+        const dateStr = date || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
         const newActivity: Activity = {
             id: clientId,
@@ -206,6 +211,45 @@ export function useWorkouts() {
         return newActivity;
     }, []);
 
+    const updateActivity = useCallback(async (id: string, name: string, duration: number, calories: number, date?: string) => {
+        let existingActivity: Activity | undefined;
+
+        setActivities(prev => {
+            existingActivity = prev.find(a => a.id === id);
+            if (!existingActivity) return prev;
+
+            const updatedActivity: Activity = {
+                ...existingActivity,
+                name,
+                duration,
+                calories,
+                date: date || existingActivity.date,
+                synced: false
+            };
+            const updatedList = prev.map(a => a.id === id ? updatedActivity : a);
+            AsyncStorage.setItem(ACTIVITIES_KEY, JSON.stringify(updatedList));
+            return updatedList;
+        });
+
+        try {
+            await api.put(`/workouts/activities/${id}`, {
+                name,
+                duration,
+                calories,
+                date: date || existingActivity?.date
+            });
+
+            // Mark as synced on success
+            setActivities(prev => {
+                const updated = prev.map(a => a.id === id ? { ...a, synced: true } : a);
+                AsyncStorage.setItem(ACTIVITIES_KEY, JSON.stringify(updated));
+                return updated;
+            });
+        } catch (e) {
+            console.error('Failed to update activity online', e);
+        }
+    }, []);
+
     const deleteActivity = useCallback(async (id: string) => {
         setActivities(prev => {
             const updated = prev.filter(a => a.id !== id);
@@ -226,6 +270,7 @@ export function useWorkouts() {
         loading,
         saveStats,
         addActivity: addActivityItem,
+        updateActivity,
         deleteActivity,
         refresh: loadData
     };

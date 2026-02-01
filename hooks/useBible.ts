@@ -114,11 +114,15 @@ export function useBible() {
     const loadProgress = async () => {
         try {
             setIsLoading(true);
-            const savedVersion = await AsyncStorage.getItem('bible_version');
-            const savedBook = await AsyncStorage.getItem('bible_book');
-            const savedChapter = await AsyncStorage.getItem('bible_chapter');
-            const savedFontSize = await AsyncStorage.getItem('bible_font_size');
-            const savedAutoHide = await AsyncStorage.getItem('bible_auto_hide');
+            // Batch read instead of 5 separate calls - reduces iOS thread blocking
+            const keys = ['bible_version', 'bible_book', 'bible_chapter', 'bible_font_size', 'bible_auto_hide'];
+            const results = await AsyncStorage.multiGet(keys);
+
+            const savedVersion = results[0][1];
+            const savedBook = results[1][1];
+            const savedChapter = results[2][1];
+            const savedFontSize = results[3][1];
+            const savedAutoHide = results[4][1];
 
             if (savedVersion) setSelectedVersion(savedVersion);
             if (savedBook) setSelectedBookIndex(parseInt(savedBook));
@@ -134,9 +138,12 @@ export function useBible() {
 
     const saveProgress = async () => {
         try {
-            await AsyncStorage.setItem('bible_version', selectedVersion);
-            await AsyncStorage.setItem('bible_book', selectedBookIndex.toString());
-            await AsyncStorage.setItem('bible_chapter', selectedChapterIndex.toString());
+            // Batch write instead of 3 separate calls
+            await AsyncStorage.multiSet([
+                ['bible_version', selectedVersion],
+                ['bible_book', selectedBookIndex.toString()],
+                ['bible_chapter', selectedChapterIndex.toString()]
+            ]);
         } catch (error) {
             console.error('Failed to save bible progress', error);
         }

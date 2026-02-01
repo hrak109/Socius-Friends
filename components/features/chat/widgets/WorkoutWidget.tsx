@@ -117,30 +117,37 @@ export default function WorkoutWidget({ exercise, duration, options, messageId, 
     return (
         <View style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.headerRow}>
-                <Ionicons name="fitness" size={20} color="#FF3B30" />
+                <Ionicons name="fitness" size={22} color="#FF3B30" />
                 <Text style={[styles.title, { color: colors.text }]}>{exercise}</Text>
             </View>
             {duration && duration > 0 && (
-                <Text style={[styles.duration, { color: colors.textSecondary }]}>{duration} min</Text>
+                <Text style={[styles.duration, { color: colors.textSecondary }]}>{duration} {t('workout.min')}</Text>
             )}
 
             <View style={styles.optionsContainer}>
                 {options.map((opt, index) => {
                     let label = opt.label;
-                    // Translate known keys
-                    if (opt.label.toLowerCase().includes('light')) label = t('workout.intensity_light') || 'Light';
-                    if (opt.label.toLowerCase().includes('moderate')) label = t('workout.intensity_moderate') || 'Moderate';
-                    if (opt.label.toLowerCase().includes('high') || opt.label.toLowerCase().includes('intense')) label = t('workout.intensity_high') || 'High';
+                    const lowerLabel = opt.label.toLowerCase();
+
+                    // Translate known intensity keys
+                    if (lowerLabel.includes('light') || lowerLabel.includes('low')) label = t('workout.intensity_light') || 'Light';
+                    if (lowerLabel.includes('moderate') || lowerLabel.includes('medium')) label = t('workout.intensity_moderate') || 'Moderate';
+                    if (lowerLabel.includes('high') || lowerLabel.includes('intense') || lowerLabel.includes('vigorous')) label = t('workout.intensity_high') || 'High';
+
+                    // Intensity-based colors
+                    const isLight = lowerLabel.includes('light') || lowerLabel.includes('low');
+                    const isHigh = lowerLabel.includes('high') || lowerLabel.includes('intense') || lowerLabel.includes('vigorous');
+                    const intensityColor = isLight ? '#34C759' : isHigh ? '#FF3B30' : '#FF9500';
 
                     return (
                         <TouchableOpacity
                             key={index}
-                            style={[styles.optionButton, { backgroundColor: colors.inputBackground }]}
+                            style={[styles.optionButton, { backgroundColor: colors.inputBackground, borderWidth: 1, borderColor: colors.border }]}
                             onPress={() => handleLog(opt.calories)}
                             disabled={loading}
                         >
                             <Text style={[styles.optionLabel, { color: colors.text }]}>{label}</Text>
-                            <Text style={[styles.optionValue, { color: '#FF3B30' }]}>{opt.calories} kcal</Text>
+                            <Text style={[styles.optionValue, { color: intensityColor }]}>{opt.calories} {t('calories.kcal') || 'kcal'}</Text>
                         </TouchableOpacity>
                     );
                 })}
@@ -185,8 +192,8 @@ export default function WorkoutWidget({ exercise, duration, options, messageId, 
 const styles = StyleSheet.create({
     container: {
         marginTop: 10,
-        padding: 12,
-        borderRadius: 12,
+        padding: 14,
+        borderRadius: 16,
         borderWidth: 1,
         width: '100%',
     },
@@ -194,10 +201,10 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-        marginBottom: 4,
+        marginBottom: 6,
     },
     title: {
-        fontSize: 14,
+        fontSize: 16,
         fontWeight: 'bold',
     },
     duration: {

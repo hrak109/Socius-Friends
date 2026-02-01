@@ -47,10 +47,13 @@ export const UserProfileProvider = ({ children }: { children: React.ReactNode })
 
     const loadProfile = async () => {
         try {
-            // 1. Load from cache immediately
-            const name = await AsyncStorage.getItem('user_display_name');
-            const savedUsername = await AsyncStorage.getItem('user_username');
-            const avatar = await AsyncStorage.getItem('user_display_avatar');
+            // 1. Load from cache immediately using batch read - reduces iOS thread blocking
+            const keys = ['user_display_name', 'user_username', 'user_display_avatar'];
+            const results = await AsyncStorage.multiGet(keys);
+
+            const name = results[0][1];
+            const savedUsername = results[1][1];
+            const avatar = results[2][1];
 
 
             if (name) setDisplayName(name);

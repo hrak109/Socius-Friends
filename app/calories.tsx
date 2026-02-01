@@ -87,10 +87,11 @@ export default function CaloriesScreen() {
 
         try {
             if (editingEntry) {
-                // Keep original date when editing unless we added date edit support later
-                await updateEntry(editingEntry.id, food.trim(), calNum);
+                // Pass updated date along with food and calories
+                const dateStr = dayjs(selectedDate).format('YYYY-MM-DD');
+                await updateEntry(editingEntry.id, food.trim(), calNum, dateStr);
             } else {
-                const dateStr = selectedDate.toISOString().split('T')[0];
+                const dateStr = dayjs(selectedDate).format('YYYY-MM-DD');
                 await addEntry(food.trim(), calNum, dateStr);
             }
             // Reset and close
@@ -108,6 +109,8 @@ export default function CaloriesScreen() {
         setEditingEntry(entry);
         setFood(entry.food);
         setCalories(entry.calories.toString());
+        // Parse the entry's date in local time to avoid timezone offset issues
+        setSelectedDate(dayjs(entry.date).toDate());
         setModalVisible(true);
     };
 
@@ -128,7 +131,7 @@ export default function CaloriesScreen() {
 
     // Stats
     const stats = useMemo(() => {
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = dayjs().format('YYYY-MM-DD');
         const todayEntries = entries.filter(e => e.date === todayStr);
         const todayTotal = todayEntries.reduce((sum, e) => sum + e.calories, 0);
 
@@ -147,40 +150,38 @@ export default function CaloriesScreen() {
     const renderItem = ({ item, index }: { item: CalorieEntry, index: number }) => {
         const prevItem = entries[index - 1];
         const showDateHeader = !prevItem || prevItem.date !== item.date;
+        const isToday = item.date === dayjs().format('YYYY-MM-DD');
 
         return (
             <View>
                 {showDateHeader && (
-                    <View style={[styles.dateHeader, { backgroundColor: isDark ? '#333' : '#f0f0f0' }]}>
-                        <Text style={[styles.dateHeaderText, { color: colors.textSecondary }]}>
-                            {item.date === new Date().toISOString().split('T')[0] ? t('common.today') : item.date}
+                    <View style={[styles.dateHeader, { backgroundColor: isToday ? colors.primary + '20' : colors.card }]}>
+                        <Text style={[styles.dateHeaderText, { color: isToday ? colors.primary : colors.textSecondary }]}>
+                            {isToday ? t('common.today') : item.date}
                         </Text>
                         <Text style={[styles.dateHeaderTotal, { color: colors.primary }]}>
                             {entries.filter(e => e.date === item.date).reduce((sum, e) => sum + e.calories, 0)} kcal
                         </Text>
                     </View>
                 )}
-                <View style={[styles.entryItem, { borderBottomColor: colors.border }]}>
-                    <View style={styles.entryLeft}>
+                <TouchableOpacity
+                    style={[styles.entryItem, { backgroundColor: colors.card }]}
+                    onPress={() => handleEdit(item)}
+                    onLongPress={() => handleDelete(item.id)}
+                >
+                    <View style={styles.entryIcon}>
+                        <Ionicons name="fast-food-outline" size={24} color={colors.primary} />
+                    </View>
+                    <View style={styles.entryInfo}>
                         <Text style={[styles.entryFood, { color: colors.text }]}>{item.food}</Text>
                         <Text style={[styles.entryTime, { color: colors.textSecondary }]}>
-                            {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {dayjs(item.timestamp).format('h:mm A')}
                         </Text>
                     </View>
-                    <View style={styles.entryRight}>
-                        <Text style={[styles.entryCalories, { color: colors.primary }]}>
-                            {item.calories}
-                        </Text>
-                        <View style={styles.actionButtons}>
-                            <TouchableOpacity onPress={() => handleEdit(item)} style={styles.actionButton}>
-                                <Ionicons name="pencil" size={20} color={colors.textSecondary} />
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.actionButton}>
-                                <Ionicons name="trash-outline" size={20} color={colors.error || '#FF3B30'} />
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
+                    <Text style={[styles.entryCalories, { color: colors.primary }]}>
+                        {item.calories} kcal
+                    </Text>
+                </TouchableOpacity>
             </View>
         );
     };
@@ -409,22 +410,28 @@ const styles = StyleSheet.create({
         marginTop: 15,
         marginBottom: 5,
     },
-    dateHeaderText: { fontSize: 14, fontWeight: '600' },
+    dateHeaderText: { fontSize: 14, fontWeight: '700' },
     dateHeaderTotal: { fontSize: 14, fontWeight: 'bold' },
     entryItem: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 15,
-        borderBottomWidth: 1,
+        padding: 16,
+        borderRadius: 16,
+        marginBottom: 8,
     },
-    entryLeft: { flex: 1 },
-    entryFood: { fontSize: 16, fontWeight: '500', marginBottom: 2 },
-    entryTime: { fontSize: 12 },
-    entryCalories: { fontSize: 18, fontWeight: 'bold' },
-    entryRight: { flexDirection: 'row', alignItems: 'center', gap: 15 },
-    actionButtons: { flexDirection: 'row', gap: 10, marginLeft: 10 },
-    actionButton: { padding: 4 },
+    entryIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(0,0,0,0.05)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+    },
+    entryInfo: { flex: 1 },
+    entryFood: { fontSize: 16, fontWeight: '600' },
+    entryTime: { fontSize: 12, marginTop: 2 },
+    entryCalories: { fontSize: 16, fontWeight: '700' },
     emptyContainer: {
         flex: 1,
         alignItems: 'center',

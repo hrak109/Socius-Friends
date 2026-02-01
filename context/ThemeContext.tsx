@@ -89,15 +89,20 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         const loadSettings = async () => {
             try {
-                const savedTheme = await AsyncStorage.getItem('app_theme');
+                // Batch read instead of 3 separate calls - reduces iOS thread blocking
+                const keys = ['app_theme', 'socius_avatar_preference', 'app_accent_color'];
+                const results = await AsyncStorage.multiGet(keys);
+
+                const savedTheme = results[0][1];
+                const savedAvatar = results[1][1];
+                const savedAccent = results[2][1];
+
                 if (savedTheme === 'dark' || savedTheme === 'light') {
                     setTheme(savedTheme);
                 }
-                const savedAvatar = await AsyncStorage.getItem('socius_avatar_preference');
                 if (savedAvatar) {
                     setAvatarId(savedAvatar);
                 }
-                const savedAccent = await AsyncStorage.getItem('app_accent_color');
                 if (savedAccent) {
                     setAccentColorState(savedAccent);
                 }

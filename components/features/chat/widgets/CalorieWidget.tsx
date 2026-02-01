@@ -94,25 +94,36 @@ export default function CalorieWidget({ food, options, messageId, onLogged }: Ca
 
     return (
         <View style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.title, { color: colors.text }]}>{t('calories.select_portion')} ({food})</Text>
+            <View style={styles.headerRow}>
+                <Ionicons name="nutrition" size={20} color="#34C759" />
+                <Text style={[styles.title, { color: colors.text }]}>{t('calories.select_portion')}</Text>
+            </View>
+            <Text style={[styles.foodName, { color: colors.primary }]}>{food}</Text>
 
             <View style={styles.optionsContainer}>
                 {options.map((opt, index) => {
                     let label = opt.label;
                     // Translate known keys
-                    if (opt.label === 'Light Meal') label = t('calories.light_meal') || 'Light Meal';
-                    if (opt.label === 'Average Meal') label = t('calories.average_meal') || 'Average Meal';
-                    if (opt.label === 'Heavier Meal') label = t('calories.heavier_meal') || 'Heavier Meal';
+                    const lowerLabel = opt.label.toLowerCase();
+                    if (lowerLabel === 'light meal' || lowerLabel === 'light') label = t('calories.light_meal') || 'Light Meal';
+                    if (lowerLabel === 'average meal' || lowerLabel === 'average' || lowerLabel === 'medium') label = t('calories.average_meal') || 'Average Meal';
+                    if (lowerLabel === 'heavier meal' || lowerLabel === 'heavy' || lowerLabel === 'large') label = t('calories.heavier_meal') || 'Heavier Meal';
+                    if (lowerLabel === 'small') label = t('calories.small_portion') || 'Small';
+
+                    // Determine color based on option
+                    const isLight = lowerLabel.includes('light') || lowerLabel.includes('small');
+                    const isHeavy = lowerLabel.includes('heav') || lowerLabel.includes('large');
+                    const optionColor = isLight ? '#34C759' : isHeavy ? '#FF6B6B' : '#FF9500';
 
                     return (
                         <TouchableOpacity
                             key={index}
-                            style={[styles.optionButton, { backgroundColor: colors.inputBackground }]}
+                            style={[styles.optionButton, { backgroundColor: colors.inputBackground, borderWidth: 1, borderColor: colors.border }]}
                             onPress={() => handleLog(opt.calories)}
                             disabled={loading}
                         >
                             <Text style={[styles.optionLabel, { color: colors.text }]}>{label}</Text>
-                            <Text style={[styles.optionValue, { color: colors.primary }]}>{opt.calories} kcal</Text>
+                            <Text style={[styles.optionValue, { color: optionColor }]}>{opt.calories} {t('calories.kcal')}</Text>
                         </TouchableOpacity>
                     );
                 })}
@@ -157,15 +168,25 @@ export default function CalorieWidget({ food, options, messageId, onLogged }: Ca
 const styles = StyleSheet.create({
     container: {
         marginTop: 10,
-        padding: 12,
-        borderRadius: 12,
+        padding: 14,
+        borderRadius: 16,
         borderWidth: 1,
         width: '100%',
     },
+    headerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 4,
+    },
     title: {
         fontSize: 14,
+        fontWeight: '600',
+    },
+    foodName: {
+        fontSize: 16,
         fontWeight: 'bold',
-        marginBottom: 10,
+        marginBottom: 12,
     },
     optionsContainer: {
         flexDirection: 'row',
